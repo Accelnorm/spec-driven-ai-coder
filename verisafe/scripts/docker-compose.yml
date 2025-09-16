@@ -1,0 +1,39 @@
+# docker-compose.yml - Lightweight PostgreSQL + pgvector setup
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: rag_postgres
+    environment:
+      POSTGRES_DB: rag_db
+      POSTGRES_USER: rag_user
+      POSTGRES_PASSWORD: rag_password
+      # Memory-optimized settings
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    command: |
+      postgres 
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c work_mem=4MB
+      -c max_connections=50
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

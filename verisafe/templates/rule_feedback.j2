@@ -1,0 +1,11 @@
+{% for rule_res, explanation in results %}
+The rule {{ rule_res.name }} result was: {{ rule_res.status }}
+{% if rule_res.status == "VIOLATED" %}
+{% if explanation %}
+Your analysis of the counterxample yielded the following:
+{{explanation}}
+{%else %}
+Analyzing the counterexample yielded no results
+{%endif%}
+{%endif%}
+{% endfor %}

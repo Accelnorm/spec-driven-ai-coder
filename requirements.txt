@@ -1,0 +1,13 @@
+click==8.2.1
+einops==0.8.1
+langchain-anthropic==0.3.19
+langgraph==0.6.7
+langgraph-checkpoint==2.1.1
+langgraph-checkpoint-sqlite==2.0.11
+langgraph-prebuilt==0.6.4
+langgraph-sdk==0.2.6
+psycopg2-binary==2.9.10
+rich==14.1.0
+sentence-transformers==5.1.0
+types-psycopg2
+beautifulsoup4
