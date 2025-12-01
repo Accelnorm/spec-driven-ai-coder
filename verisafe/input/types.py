@@ -55,10 +55,12 @@ class NativeFS:
     @property
     def string_contents(self) -> str:
         return self.where.read_text()
-
-class WorkflowOptions(Protocol):
+    
+class RAGDBOptions(Protocol):
+    # database options
     rag_db: str
 
+class WorkflowOptions(RAGDBOptions):
     prover_capture_output: bool
     prover_keep_folders: bool
 
@@ -67,8 +69,12 @@ class WorkflowOptions(Protocol):
     checkpoint_id: Optional[str]
     thread_id: Optional[str]
     recursion_limit: int
-    audit_db: Optional[str]
+    audit_db: str
     summarization_threshold: Optional[int]
+
+    requirements_oracle: list[str]
+    set_reqs: Optional[str]
+    skip_reqs: bool
 
 
 class ModelOptions(Protocol):

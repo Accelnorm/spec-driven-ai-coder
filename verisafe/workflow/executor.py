@@ -10,12 +10,15 @@ from langchain_core.runnables import RunnableConfig
 from langchain_core.language_models.chat_models import BaseChatModel
 from langgraph.types import Command
 
+from graphcore.tools.memory import memory_tool
+
 from verisafe.input.types import WorkflowOptions, InputData, ResumeFSData, ResumeIdData, ResumeInput, NativeFS
-from verisafe.workflow.factories import get_checkpointer, get_cryptostate_builder, get_store
+from verisafe.workflow.factories import get_checkpointer, get_cryptostate_builder, get_store, get_memory, get_vfs_tools, get_memory_ns
 from verisafe.workflow.types import Input, PromptParams
 from verisafe.workflow.meta import create_resume_commentary
 from verisafe.core.state import ResultStateSchema, CryptoStateGen
 from verisafe.core.context import CryptoContext, ProverOptions
+from verisafe.core.validation import ValidationType, prover, reqs as req_type
 from verisafe.rag.db import PostgreSQLRAGDatabase
 from verisafe.rag.models import get_model as get_rag_model
 from verisafe.audit.db import AuditDB, ResumeArtifact, InputFileLike
@@ -23,6 +26,9 @@ from verisafe.diagnostics.stream import AllUpdates, PartialUpdates, Summarizatio
 from verisafe.diagnostics.handlers import summarize_update, handle_custom_update
 from verisafe.human.handlers import handle_human_interrupt
 from verisafe.templates.loader import load_jinja_template
+from verisafe.natreq.extractor import get_requirements
+from verisafe.natreq.judge import get_judge_tool
+from verisafe.tools.relaxation import requirements_relaxation
 
 StreamEvents = Literal["checkpoints", "custom", "updates"]
 
@@ -148,11 +154,9 @@ def execute_cryptosafe_workflow(
     logger = logging.getLogger(__name__)
 
     checkpointer = get_checkpointer()
-
-    audit_db: Optional[AuditDB] = None
-    if workflow_options.audit_db is not None:
-        conn = psycopg.connect(workflow_options.audit_db)
-        audit_db = AuditDB(conn)
+    
+    audit_conn = psycopg.connect(workflow_options.audit_db)
+    audit_db = AuditDB(audit_conn)
 
     thread_id = workflow_options.thread_id
 
@@ -168,6 +172,7 @@ def execute_cryptosafe_workflow(
     system_doc: InputFileLike
     interface_file: InputFileLike
     spec_file: InputFileLike
+    resume_art : None | ResumeArtifact = None
 
     match input:
         case InputData():
@@ -179,9 +184,6 @@ def execute_cryptosafe_workflow(
 
         case ResumeIdData() | ResumeFSData():
             prompt_params = PromptParams(is_resume=True)
-
-            if audit_db is None:
-                raise RuntimeError("Cannot do resume workflows without audit db")
 
             resume_art = audit_db.get_resume_artifact(thread_id=input.thread_id)
             if input.new_system is None:
@@ -197,25 +199,91 @@ def execute_cryptosafe_workflow(
                     flow_input = get_resume_id_input(input, resume_art, workflow_options)
                     spec_file = input.new_spec
 
+    store = get_store()
+
+    from_previous_ns : str | None = None
+    match input:
+        case ResumeFSData(thread_id=src_id) | ResumeIdData(thread_id=src_id):
+            from_previous_ns = get_memory_ns(src_id, "natreq")
+        case InputData():
+            # here for completeness of matching...
+            pass
+
+    req_memories = get_memory(
+        get_memory_ns(thread_id, "natreq"),
+        from_previous_ns
+    )
+
+    extra_reqs = store.get((thread_id,), "requirements")
+    reqs_list : list[str] | None
+    if extra_reqs is None:
+        if workflow_options.skip_reqs:
+            reqs_list = None
+        elif workflow_options.set_reqs is not None:
+            if workflow_options.set_reqs.startswith("@"):
+                other_reqs = store.get((workflow_options.set_reqs[1:],), "requirements")
+                assert other_reqs is not None
+                reqs_list = other_reqs.value["reqs"]
+            else:
+                reqs_list = [ v for l in pathlib.Path(workflow_options.set_reqs).read_text().splitlines() if (v := l.strip()) ]
+        else:
+            print("Analyzing requirements...")
+            reqs = get_requirements(
+                workflow_options,
+                llm,
+                system_doc,
+                spec_file,
+                req_memories,
+                resume_art,
+                workflow_options.requirements_oracle
+            )
+            reqs_list = reqs
+        store.put((thread_id,), "requirements", {"reqs": reqs_list})
+    else:
+        print("Read requirements from store")
+        reqs_list = extra_reqs.value["reqs"]
+    extra_tools = []
+
+    if reqs_list is not None:
+        judge_tool = get_judge_tool(
+            reqs=reqs_list,
+            mem=req_memories,
+            unbound=llm,
+            vfs_tools=get_vfs_tools(
+                fs_layer=fs_layer, immutable=True
+            )[0]
+        )
+        extra_tools.append(judge_tool)
+        extra_tools.append(requirements_relaxation)
+
+    if "context-management-2025-06-27" in getattr(llm, "betas"):
+        memory = memory_tool(get_memory(thread_id, "verisafe"))
+        extra_tools.append(memory)
+
+
     (workflow_builder, bound_llm, materializer) = get_cryptostate_builder(
         llm=llm,
         fs_layer=fs_layer,
         prompt_params=prompt_params,
-        summarization_threshold=workflow_options.summarization_threshold
+        summarization_threshold=workflow_options.summarization_threshold,
+        extra_tools=extra_tools
     )
 
-    if audit_db is not None:
-        audit_db.register_run(
-            thread_id=thread_id,
-            system_doc=system_doc,
-            interface_file=spec_file,
-            spec_file=interface_file,
-            vfs_init=materializer.iterate(cast(CryptoStateGen, flow_input)) #hack
-        )
-
-    store = get_store()
+    audit_db.register_run(
+        thread_id=thread_id,
+        system_doc=system_doc,
+        interface_file=interface_file,
+        spec_file=spec_file,
+        vfs_init=materializer.iterate(flow_input),
+        reqs=reqs_list
+    )
 
     workflow_exec = workflow_builder.compile(checkpointer=checkpointer, store=store)
+    if reqs_list is not None:
+        flow_input["input"].append(f"""
+    Additionally, the implementation MUST satisfy the following requirements:
+    {"\n".join(f"{i}. {r}" for (i, r) in enumerate(reqs_list, start = 1))}
+    """)
 
     try:
         import grandalf # type: ignore
@@ -241,7 +309,11 @@ def execute_cryptosafe_workflow(
     )   
 
     rag_db = PostgreSQLRAGDatabase(rag_connection, get_rag_model(), skip_test=True)
-    work_context = CryptoContext(llm=bound_llm, rag_db=rag_db, prover_opts=prover_opts, vfs_materializer=materializer)
+    required_validations : list[ValidationType] = [prover]
+    if reqs_list is not None:
+        required_validations.append(req_type)
+    
+    work_context = CryptoContext(llm=bound_llm, rag_db=rag_db, prover_opts=prover_opts, vfs_materializer=materializer, required_validations=required_validations)
 
     curr_state_config: RunnableConfig = {
         "configurable": {

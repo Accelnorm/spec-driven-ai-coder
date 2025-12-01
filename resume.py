@@ -16,13 +16,8 @@ def main() -> int:
 
     input_data: ResumeIdData | ResumeFSData
 
-    if args.audit_db is None:
-        raise RuntimeError("Need audit db")
-
     match args.command:
         case "materialize":
-            if args.audit_db is None:
-                raise RuntimeError("Need audit db")
             conn = psycopg.connect(args.audit_db)
             audit = AuditDB(conn)
             res = audit.get_resume_artifact(args.src_thread_id)
@@ -37,11 +32,11 @@ def main() -> int:
                 print(f"Refusing to materialize in a folder that appears to be a materialization of {curr_id}")
                 print("You can remove the .session-id file to override this behavior")
                 return 1
-            session_id_file.write_text(args.src_thread_id)
             for (p, cont) in res.vfs:
                 output_path = out_dir / p
                 output_path.parent.mkdir(exist_ok=True, parents=True)
                 output_path.write_bytes(cont)
+            session_id_file.write_text(args.src_thread_id)
             return 0
         case "resume-dir" | "resume-id":
             commentary: str | None = None
