@@ -47,5 +47,4 @@ jobs:
       # If you do not use typed-stubs, this has no effect.
       - name: Run mypy
         run: |
-          # Run mypy against the folder you care about. Replace `src/` with your folder.
-          python -m mypy verisafe/ --config-file mypy.ini
+          python -m mypy composer/ --config-file mypy.ini
