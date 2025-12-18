@@ -20,6 +20,7 @@ class AIComposerContext:
     prover_opts: ProverOptions
     vfs_materializer: VFSAccessor[AIComposerState]
     required_validations: list[ValidationType] = field(default_factory=lambda: [prover])
+    cvlr_rag_db: PostgreSQLRAGDatabase | None = None
 
 def compute_state_digest(c: AIComposerContext, state: AIComposerState) -> str:
     # not interested in cryptographic bulletproofing, just need *some* digest

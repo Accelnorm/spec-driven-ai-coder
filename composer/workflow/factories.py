@@ -111,9 +111,9 @@ def get_cryptostate_builder(
     from composer.tools.proposal import propose_spec_change
     from composer.tools.question import human_in_the_loop
     from composer.tools.result import code_result
-    from composer.tools.search import cvl_manual_search
+    from composer.tools.search import cvl_manual_search, cvlr_manual_search
 
-    crypto_tools = [certora_prover, propose_spec_change, human_in_the_loop, code_result, cvl_manual_search, *vfs_tooling]
+    crypto_tools = [certora_prover, propose_spec_change, human_in_the_loop, code_result, cvl_manual_search, cvlr_manual_search, *vfs_tooling]
     crypto_tools.extend(extra_tools)
 
     conf : SummaryGeneration | None = SummaryGeneration(

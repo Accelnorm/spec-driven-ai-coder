@@ -20,7 +20,7 @@ from composer.workflow.meta import create_resume_commentary
 from composer.core.state import ResultStateSchema, AIComposerState
 from composer.core.context import AIComposerContext, ProverOptions
 from composer.core.validation import ValidationType, prover, reqs as req_type
-from composer.rag.db import PostgreSQLRAGDatabase
+from composer.rag.db import PostgreSQLRAGDatabase, CVLR_RAG_CONNECTION
 from composer.rag.models import get_model as get_rag_model
 from composer.audit.db import AuditDB, ResumeArtifact, InputFileLike
 from composer.diagnostics.stream import AllUpdates, PartialUpdates, Summarization
@@ -313,11 +313,18 @@ def execute_ai_composer_workflow(
     )   
 
     rag_db = PostgreSQLRAGDatabase(rag_connection, get_rag_model(), skip_test=True)
+    # Initialize CVLR RAG database for Solana/CVLR manual search
+    cvlr_rag_db: PostgreSQLRAGDatabase | None = None
+    try:
+        cvlr_rag_db = PostgreSQLRAGDatabase(CVLR_RAG_CONNECTION, get_rag_model(), skip_test=True)
+    except Exception:
+        logger.warning("CVLR RAG database not available - cvlr_manual_search will be disabled")
+
     required_validations : list[ValidationType] = [prover]
     if reqs_list is not None:
         required_validations.append(req_type)
     
-    work_context = AIComposerContext(llm=bound_llm, rag_db=rag_db, prover_opts=prover_opts, vfs_materializer=materializer, required_validations=required_validations)
+    work_context = AIComposerContext(llm=bound_llm, rag_db=rag_db, prover_opts=prover_opts, vfs_materializer=materializer, required_validations=required_validations, cvlr_rag_db=cvlr_rag_db)
 
     curr_state_config: RunnableConfig = {
         "configurable": {
