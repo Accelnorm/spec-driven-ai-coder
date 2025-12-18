@@ -30,6 +30,7 @@ if composer_dir not in sys.path:
 
 from bs4 import BeautifulSoup, NavigableString, Tag
 import spacy #type: ignore
+import psycopg
 from composer.rag.db import PostgreSQLRAGDatabase
 from composer.rag.types import BlockChunk
 from composer.rag.text import get_code_refs, code_ref_tag
@@ -336,6 +337,7 @@ def sanity_checker(s: BlockChunk) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description='Build RAG database from Solana/CVLR HTML documentation')
+    parser.add_argument('--reset', action='store_true', help='Truncate existing CVLR RAG tables before ingesting')
     parser.add_argument('html_file', help='Path to the HTML file to process')
     args = parser.parse_args()
 
@@ -355,6 +357,15 @@ def main() -> None:
     # Use separate CVLR RAG database (not shared with CVL/EVM)
     CVLR_RAG_CONNECTION: str = "postgresql://cvlr_rag_user:cvlr_rag_password@localhost:5432/cvlr_rag_db"
     db = PostgreSQLRAGDatabase(CVLR_RAG_CONNECTION, get_model(), skip_test=False)
+
+    if args.reset:
+        logger.info("Reset requested; truncating existing CVLR RAG tables...")
+        with psycopg.connect(CVLR_RAG_CONNECTION) as conn:
+            with conn.cursor() as cur:
+                cur.execute("TRUNCATE TABLE code_refs, documents RESTART IDENTITY")
+            conn.commit()
+        logger.info("✅ CVLR RAG tables truncated")
+
     buffer : List[BlockChunk] = []
 
     for s in main_body.select("div.compound > section"):
