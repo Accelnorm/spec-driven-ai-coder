@@ -14,6 +14,10 @@ def main() -> int:
     parser = resume_workflow_parser()
     args = parser.parse_args()
 
+    if args.target == "svm":
+        print("Error: SVM (Solana) target is not yet implemented.")
+        return 1
+
     input_data: ResumeIdData | ResumeFSData
 
     match args.command:
@@ -21,11 +25,11 @@ def main() -> int:
             conn = psycopg.connect(args.audit_db)
             audit = AuditDB(conn)
             res = audit.get_resume_artifact(args.src_thread_id)
-            out_dir = pathlib.Path(args.target)
+            out_dir = pathlib.Path(args.output_dir)
             out_dir.mkdir(exist_ok=True, parents=True)
 
             if not out_dir.is_dir():
-                raise RuntimeError(f"output dir {args.target} is not a directory")
+                raise RuntimeError(f"output dir {args.output_dir} is not a directory")
             session_id_file = out_dir / ".session-id"
             if session_id_file.is_file() and \
                 (curr_id := session_id_file.read_text().strip()) != args.src_thread_id:

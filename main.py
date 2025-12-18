@@ -11,6 +11,10 @@ def main() -> int:
     parser = fresh_workflow_argument_parser()
     args = parser.parse_args()
 
+    if args.target == "svm":
+        print("Error: SVM (Solana) target is not yet implemented.")
+        return 1
+
     setup_logging(args.debug)
 
     llm = create_llm(args)

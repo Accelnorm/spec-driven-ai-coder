@@ -47,6 +47,10 @@ def _common_options(parser: argparse.ArgumentParser) -> None:
     "this option starts with '@', taken to be the thread id of another run whose requirements should be copied.")
     parser.add_argument("--skip-reqs", action="store_true", help="If provided, no natural language requirements are added, and requirement judgment is skipped.")
 
+    # Target platform
+    parser.add_argument("--target", choices=["evm", "svm"], default="evm",
+                        help="Target platform for verification (default: evm)")
+
 
 def fresh_workflow_argument_parser() -> TypedArgumentParser[CommandLineArgs]:
     """Configure command line argument parser."""
@@ -70,7 +74,7 @@ def resume_workflow_parser() -> TypedArgumentParser[ResumeArgs]:
     sub_parse = parser.add_subparsers(dest="command", required=True)
     materialize_args = sub_parse.add_parser("materialize", help="Materialize the complete VFS from a run")
     materialize_args.add_argument("src_thread_id", help="The thread id for which to dump the VFS")
-    materialize_args.add_argument("target", help="The target directory")
+    materialize_args.add_argument("output_dir", help="The target directory")
 
     resume_id_args = sub_parse.add_parser("resume-id")
     _common_resume_args(resume_id_args)

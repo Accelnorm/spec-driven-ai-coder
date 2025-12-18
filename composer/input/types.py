@@ -1,4 +1,6 @@
 from typing import Optional, Protocol, Literal
+
+TargetPlatform = Literal["evm", "svm"]
 import pathlib
 from dataclasses import dataclass
 
@@ -61,6 +63,8 @@ class RAGDBOptions(Protocol):
     rag_db: str
 
 class WorkflowOptions(RAGDBOptions):
+    target: TargetPlatform
+
     prover_capture_output: bool
     prover_keep_folders: bool
 
@@ -97,7 +101,7 @@ class ResumeArgs(WorkflowOptions, ModelOptions):
     command: Literal["materialize", "resume-dir", "resume-id"]
 
     # materialize
-    target: str
+    output_dir: str
 
     # common resume
     commentary: Optional[str]
