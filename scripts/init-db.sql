@@ -5,6 +5,7 @@ CREATE USER langgraph_store_user WITH PASSWORD 'langgraph_store_password';
 CREATE USER langgraph_checkpoint_user WITH PASSWORD 'langgraph_checkpoint_password';
 CREATE USER audit_db_user WITH PASSWORD 'audit_db_password';
 CREATE USER memory_tool_user WITH PASSWORD 'memory_tool_password';
+CREATE USER cvlr_rag_user WITH PASSWORD 'cvlr_rag_password';
 
 -- Create application-specific databases
 CREATE DATABASE rag_db OWNER rag_user;
@@ -12,6 +13,7 @@ CREATE DATABASE langgraph_store_db OWNER langgraph_store_user;
 CREATE DATABASE langgraph_checkpoint_db OWNER langgraph_checkpoint_user;
 CREATE DATABASE audit_db OWNER audit_db_user;
 CREATE DATABASE memory_tool_db OWNER memory_tool_user;
+CREATE DATABASE cvlr_rag_db OWNER cvlr_rag_user;
 
 \c rag_db
 CREATE EXTENSION IF NOT EXISTS vector;
@@ -34,6 +36,11 @@ GRANT ALL PRIVILEGES ON SCHEMA public TO audit_db_user;
 \c audit_db
 GRANT ALL PRIVILEGES ON DATABASE memory_tool_db TO memory_tool_user;
 GRANT ALL PRIVILEGES ON SCHEMA public TO memory_tool_user;
+
+\c cvlr_rag_db
+CREATE EXTENSION IF NOT EXISTS vector;
+GRANT ALL PRIVILEGES ON DATABASE cvlr_rag_db TO cvlr_rag_user;
+GRANT ALL PRIVILEGES ON SCHEMA public TO cvlr_rag_user;
 
 -- Create audit_db schema
 CREATE TABLE IF NOT EXISTS file_blobs(
