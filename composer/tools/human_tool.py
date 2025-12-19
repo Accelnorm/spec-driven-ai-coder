@@ -1,4 +1,4 @@
-from typing import TypeVar, Callable, Literal, Annotated, get_args, get_origin, cast, Any
+from typing import TypeVar, Callable, Literal, Annotated, get_args, get_origin, cast, Any, Optional
 
 from pydantic import create_model, Field
 
@@ -31,7 +31,22 @@ def human_interaction_tool(
             a = get_args(v)
             if len(a) != 2 or not isinstance(a[1], str):
                 raise RuntimeError(f"Illegal type annotation: {v} for {k}")
-            fields[k] = (a[0], Field(description=a[1]))
+
+            inner_type = a[0]
+            description = a[1]
+
+            # If the annotated type is Optional[...] (i.e. Union[..., NoneType]),
+            # make it optional in the Pydantic schema by providing a default of None.
+            # This ensures tool calls that omit such fields (e.g. QuestionType.code)
+            # do not cause validation errors.
+            origin = get_origin(inner_type)
+            default: Any
+            if origin is not None and type(None) in get_args(inner_type):
+                # Optional or Union[..., None]
+                default = None
+                fields[k] = (inner_type, Field(default=default, description=description))
+            else:
+                fields[k] = (inner_type, Field(description=description))
         else:
             raise RuntimeError(f"Illegal type annotation: {v} for {k}")
     fields[_injected_state_name] = (Annotated[AIComposerState, InjectedState], Field())
