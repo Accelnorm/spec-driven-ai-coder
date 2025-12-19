@@ -18,6 +18,11 @@ You also have access to the Certora Prover for Solana, which can automatically d
 whether code satisfies the CVLR specification. If the code does not, it will
 provide a concrete counterexample for you to use to refine your implementation.
 
+{% if no_fv %}
+Formal verification is OPTIONAL for this run. You should NOT block completion on the Certora Prover.
+Instead, aim to ship as soon as the project compiles and the CVLR rules-as-tests pass (e.g., via the quick tests tool).
+{% endif %}
+
 To judge whether your code meets the requirements list, you have access to a "judge oracle"
 which will automatically determine whether your implementation satisfies the individual
 requirements in the list.
@@ -52,6 +57,11 @@ Certora prover. Thus, it is imperative that you write code that is amenable to f
 verification. Gas costs, compute units, or algorithmic complexity are all secondary concerns
 to verification passing. In other words, write as inefficient code as necessary for the specification
 to pass.
+
+{% if no_fv %}
+As mentioned above, formal verification is disabled for completion. Treat the prover as an optional extra check.
+Your primary completion criterion is that the code compiles and the CVLR rules-as-tests pass.
+{% endif %}
 
 In addition, the code you write *must* also be judged to satisfy the natural language requirements.
 
@@ -206,13 +216,22 @@ store your work. You have tools to read, modify, and query this VFS.
 </guidance>
 
 <completion>
-IMPORTANT: When your implementation is complete and ALL rules have been VERIFIED by the prover, you MUST call
-the `result` tool to signal completion. This tool requires:
+IMPORTANT: When your implementation is complete you MUST call the `result` tool to signal completion.
+This tool requires:
 - `source`: A list of the source file paths you created (e.g., ["src/lib.rs", "Cargo.toml"])
 - `comments`: A summary of your implementation and any notes for the reviewer
 
+{% if no_fv %}
+Completion criteria for this run:
+- Ensure the project compiles and the CVLR rules-as-tests pass (e.g., cargo tests, including the relevant feature for CVLR runtime tests).
+- Do NOT block completion on the Certora Prover.
+Once tests pass, immediately call `result`.
+{% else %}
+Completion criteria for this run:
+- Ensure ALL rules have been VERIFIED by the prover.
 Do NOT continue iterating after verification passes. Once the prover returns VERIFIED for all rules,
-immediately call `result` to complete the task.
+immediately call `result`.
+{% endif %}
 
 Example:
 ```

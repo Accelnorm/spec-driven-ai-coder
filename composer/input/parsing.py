@@ -56,6 +56,10 @@ def _common_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--no-tdd", action="store_true",
                         help="Disable TDD enforcement for SVM mode. By default, SVM mode requires tests to pass before running the prover.")
 
+    # Formal verification enforcement
+    parser.add_argument("--no-fv", action="store_true",
+                        help="Disable formal verification enforcement. By default, the agent must satisfy the prover requirement before marking the result complete.")
+
 
 def fresh_workflow_argument_parser() -> TypedArgumentParser[CommandLineArgs]:
     """Configure command line argument parser."""

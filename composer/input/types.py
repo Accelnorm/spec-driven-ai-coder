@@ -95,6 +95,8 @@ class WorkflowOptions(RAGDBOptions):
     
     no_tdd: bool
 
+    no_fv: bool
+
 
 class ModelOptions(Protocol):
     model: str

@@ -220,14 +220,14 @@ def execute_ai_composer_workflow(
 
     match input:
         case InputData():
-            prompt_params = PromptParams(is_resume=False)
+            prompt_params = PromptParams(is_resume=False, no_fv=workflow_options.no_fv)
             flow_input = get_fresh_input(input, workflow_options)
             system_doc = input.system_doc
             interface_file = input.intf
             spec_file = input.spec
 
         case ResumeIdData() | ResumeFSData():
-            prompt_params = PromptParams(is_resume=True)
+            prompt_params = PromptParams(is_resume=True, no_fv=workflow_options.no_fv)
 
             resume_art = audit_db.get_resume_artifact(thread_id=input.thread_id)
             if input.new_system is None:
@@ -369,7 +369,9 @@ def execute_ai_composer_workflow(
     rag_db = PostgreSQLRAGDatabase(rag_connection, get_rag_model(), skip_test=True)
     # cvlr_rag_db was initialized earlier for requirements extraction
 
-    required_validations : list[ValidationType] = [prover]
+    required_validations : list[ValidationType] = []
+    if not workflow_options.no_fv:
+        required_validations.append(prover)
     if reqs_list is not None:
         required_validations.append(req_type)
     

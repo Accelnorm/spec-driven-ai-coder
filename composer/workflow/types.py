@@ -8,6 +8,7 @@ __all__ = ["TargetPlatform", "PromptParams", "Input"]
 
 class PromptParams(TypedDict):
     is_resume: bool
+    no_fv: bool
 
 class Input(FlowInput):
     """

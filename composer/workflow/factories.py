@@ -181,11 +181,28 @@ def get_cryptostate_builder(
         from composer.tools.solana_tests import solana_quick_tests
         prover_tool = solana_prover
         # For SVM, include quick tests tool for TDD workflow
-        crypto_tools = [solana_quick_tests, prover_tool, propose_spec_change, human_in_the_loop, code_result, cvl_manual_search, cvlr_manual_search, *vfs_tooling]
+        crypto_tools = [
+            solana_quick_tests,
+            *([] if prompt_params["no_fv"] else [prover_tool]),
+            propose_spec_change,
+            human_in_the_loop,
+            code_result,
+            cvl_manual_search,
+            cvlr_manual_search,
+            *vfs_tooling
+        ]
     else:
         from composer.tools.prover import certora_prover
         prover_tool = certora_prover
-        crypto_tools = [prover_tool, propose_spec_change, human_in_the_loop, code_result, cvl_manual_search, cvlr_manual_search, *vfs_tooling]
+        crypto_tools = [
+            *([] if prompt_params["no_fv"] else [prover_tool]),
+            propose_spec_change,
+            human_in_the_loop,
+            code_result,
+            cvl_manual_search,
+            cvlr_manual_search,
+            *vfs_tooling
+        ]
     crypto_tools.extend(extra_tools)
 
     conf : SummaryGeneration | None = SummaryGeneration(
