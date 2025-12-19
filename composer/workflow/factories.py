@@ -1,16 +1,19 @@
 import psycopg
 from psycopg.rows import dict_row
 
-from typing import Any
+from typing import Any, Annotated
+import re
 
 from langgraph.checkpoint.postgres import PostgresSaver
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.tools import BaseTool
+from langchain_core.tools import tool, InjectedToolCallId
 from langchain_anthropic import ChatAnthropic
 from langgraph.graph import StateGraph
 from langgraph.store.postgres import PostgresStore
+from pydantic import BaseModel, Field
 
-from graphcore.graph import build_workflow, BoundLLM
+from graphcore.graph import build_workflow, BoundLLM, tool_output
 from graphcore.tools.vfs import vfs_tools, VFSAccessor, VFSToolConfig, VFSState
 from graphcore.tools.memory import PostgresMemoryBackend
 
@@ -86,16 +89,15 @@ def get_vfs_tools(
             immutable=True
         ), VFSState)
     else:
+        forbidden_write: str | None
+        put_doc_extra: str
+
         if target == "svm":
             # Solana mode: forbid edits to spec files only (agent needs to create Cargo.toml for tests)
             forbidden_write = None
             if spec_filename is not None:
                 forbidden_write = "^" + spec_filename.replace("\\", "\\\\").replace(".", "\\.") + "$"
-            return vfs_tools(VFSToolConfig(
-                fs_layer=fs_layer,
-                immutable=False,
-                forbidden_write=forbidden_write,
-                put_doc_extra= \
+            put_doc_extra = \
     """
     By convention, Rust source files should follow standard Rust module conventions.
     The main library entry point should be in src/lib.rs.
@@ -106,13 +108,9 @@ def get_vfs_tools(
     IMPORTANT: You may not use this tool to update the specification files.
     If changes to spec files are necessary, use the propose_spec_change tool or consult the user.
     """
-            ), AIComposerState)
         else:
-            return vfs_tools(VFSToolConfig(
-                fs_layer=fs_layer,
-                immutable=False,
-                forbidden_write="^rules.spec$",
-                put_doc_extra= \
+            forbidden_write = "^rules.spec$"
+            put_doc_extra = \
     """
     By convention, every Solidity file placed into the virtual filesystem should contain exactly one contract/interface/library definitions.
     Further, the name of the contract/interface/library defined in that file should name the name of the solidity source file sans extension.
@@ -121,7 +119,44 @@ def get_vfs_tools(
     IMPORTANT: You may not use this tool to update the specification, nor should you attempt to
     add new specification files.
     """
-            ), AIComposerState)
+
+        (vfs_tooling, mat) = vfs_tools(VFSToolConfig(
+            fs_layer=fs_layer,
+            immutable=False,
+            forbidden_write=forbidden_write,
+            put_doc_extra=put_doc_extra
+        ), AIComposerState)
+
+        forbidden_re = re.compile(forbidden_write) if forbidden_write is not None else None
+
+        class PutFileSchema(BaseModel):
+            tool_call_id: Annotated[str, InjectedToolCallId]
+            files: dict[str, str] = Field(
+                default_factory=dict,
+                description="A dictionary associating RELATIVE pathnames to the contents to store at those path names. Do NOT include a leading `./` it is always implied. "
+                "The provided contents for the file are durably stored into the virtual filesystem. "
+                "Any files contents with the same path named stored in previous tool calls are overwritten.",
+            )
+
+        PutFileSchema.__doc__ = "Put file contents onto the virtual file system used by this workflow." + (f"\n\n{put_doc_extra}" if put_doc_extra else "")
+
+        @tool(args_schema=PutFileSchema)
+        def put_file(
+            tool_call_id: Annotated[str, InjectedToolCallId],
+            files: dict[str, str] | None = None,
+        ) -> str | Any:
+            if files is None or len(files) == 0:
+                return "No files provided to put_file; nothing written."
+            for k in files.keys():
+                if forbidden_re is not None and forbidden_re.fullmatch(k) is not None:
+                    return f"Illegal put operation: cannot write {k} on the VFS"
+            return tool_output(tool_call_id=tool_call_id, res={"vfs": files})
+
+        # Replace graphcore's strict put_file (which can TypeError when `files` is omitted)
+        # with our tolerant wrapper while preserving get/list/grep tools and materializer.
+        filtered = [t for t in vfs_tooling if t.name != "put_file"]
+        filtered.append(put_file)
+        return (filtered, mat)
 
 def get_cryptostate_builder(
     llm: BaseChatModel,
