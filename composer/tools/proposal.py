@@ -69,8 +69,9 @@ def propose_spec_change(
     state: Annotated[AIComposerState, InjectedState]
 ) -> Command:
     ctxt = get_runtime(AIComposerContext)
-    vfs_access = ctxt.context.vfs_materializer 
-    curr_spec = vfs_access.get(state, "rules.spec")
+    vfs_access = ctxt.context.vfs_materializer
+    spec_filename = ctxt.context.spec_filename
+    curr_spec = vfs_access.get(state, spec_filename)
     assert curr_spec is not None
     human_response = interrupt(ProposalType(
         type="proposal",
@@ -89,7 +90,7 @@ def propose_spec_change(
                     )
                 ],
                 "vfs": {
-                    "rules.spec": proposed_spec
+                    spec_filename: proposed_spec
                 }
             }
         )

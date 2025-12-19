@@ -1,4 +1,4 @@
-# Certora AI Composer
+# Certora AI Composer (Solidity + Solana/SVM Experimental)
 
 AI Composer is a tool for generating verified implementations from documentation and CVL specifications.
 
@@ -56,6 +56,37 @@ the prompts as needed.
 # Usage
 
 AI Composer is primarily a command line tool, with some more graphical debugging utilities available for use.
+
+AI Composer also has early/experimental support for Solana (SVM) workflows. This support is still in development and may change.
+It requires a working local installation of the Certora Solana Prover (`certoraSolanaProver`).
+
+## Solana (SVM) Workflows (Experimental)
+
+Solana mode is selected via `--target svm`. Unlike the default Solidity workflow, the inputs are Rust files.
+
+Example invocation:
+
+```
+python3 ./main.py examples/svm/trivial/src/certora/spec/checks.rs examples/svm/trivial/src/lib.rs examples/svm/trivial/system_doc.txt --target svm
+```
+
+Notes:
+
+* `certoraSolanaProver` must be available on your `$PATH`.
+* Your Rust project must include `Cargo.toml` metadata for the prover under `[package.metadata.certora]`. In particular,
+  `solana_summaries` and `solana_inlining` must be set:
+
+  ```toml
+  [package.metadata.certora]
+  sources = [
+      "Cargo.toml",
+      "src/**/*.rs"
+  ]
+  solana_inlining = ["certora/summaries/cvlr_inlining_core.txt"]
+  solana_summaries = ["certora/summaries/cvlr_summaries_core.txt"]
+  ```
+
+  AI Composer pre-loads these files into the VFS at the paths above for SVM runs.
 
 ## Basic Operation
 

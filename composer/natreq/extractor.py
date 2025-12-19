@@ -19,11 +19,11 @@ from langgraph.types import interrupt, Command
 
 from composer.audit.types import InputFileLike
 from composer.audit.db import ResumeArtifact
-from composer.input.types import RAGDBOptions
+from composer.input.types import RAGDBOptions, TargetPlatform
 from composer.rag.db import PostgreSQLRAGDatabase
 from composer.rag.models import get_model
 from composer.workflow.factories import get_checkpointer
-from composer.tools.search import cvl_manual_search
+from composer.tools.search import cvl_manual_search, cvlr_manual_search
 from composer.templates.loader import load_jinja_template
 from composer.natreq.automation import requirements_oracle
 
@@ -34,6 +34,7 @@ class ExtractionState(MessagesState):
 @dataclass
 class ExtractionContext:
     rag_db: PostgreSQLRAGDatabase
+    cvlr_rag_db: PostgreSQLRAGDatabase | None = None
 
 class HumanClarificationArgs(BaseModel):
     """
@@ -76,8 +77,6 @@ REMINDER: You should call this tool only AFTER you have updated your memories.
 
 system_prompt = load_jinja_template("req_role_prompt.j2")
 
-initial_prompt = load_jinja_template("req_extraction_prompt.j2")
-
 def get_requirements(
     options: RAGDBOptions,
     llm: BaseChatModel,
@@ -85,13 +84,17 @@ def get_requirements(
     spec_file: InputFileLike,
     mem_backend: MemoryBackend,
     resume_artifact: ResumeArtifact | None,
-    oracle: list[str]
+    oracle: list[str],
+    target: TargetPlatform = "evm",
+    cvlr_rag_db: PostgreSQLRAGDatabase | None = None
 ) -> list[str]:
+    manual_search = cvlr_manual_search if target == "svm" else cvl_manual_search
+    initial_prompt = load_jinja_template("req_extraction_prompt.j2", target=target)
     tools = [
         memory_tool(mem_backend),
         results_tool,
         human_in_the_loop,
-        cvl_manual_search
+        manual_search
     ]
     built : CompiledStateGraph[ExtractionState, ExtractionContext, FlowInput, Any] = build_workflow(
         state_class=ExtractionState,
@@ -147,7 +150,7 @@ spec).
     while graph_input is not None:
         to_send = graph_input
         graph_input = None
-        for payload in built.stream(input = to_send, context=ExtractionContext(rag_db=db), config=config):
+        for payload in built.stream(input = to_send, context=ExtractionContext(rag_db=db, cvlr_rag_db=cvlr_rag_db), config=config):
             if "__interrupt__" in payload:
                 interrupt_data = cast(dict, payload["__interrupt__"][0].value)
                 context = interrupt_data["context"]

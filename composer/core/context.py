@@ -7,6 +7,7 @@ from graphcore.tools.vfs import VFSAccessor
 from composer.core.state import AIComposerState
 from composer.rag.db import PostgreSQLRAGDatabase
 from composer.core.validation import ValidationType, prover
+from composer.input.types import TargetPlatform, get_spec_filename
 
 @dataclass
 class ProverOptions:
@@ -21,6 +22,8 @@ class AIComposerContext:
     vfs_materializer: VFSAccessor[AIComposerState]
     required_validations: list[ValidationType] = field(default_factory=lambda: [prover])
     cvlr_rag_db: PostgreSQLRAGDatabase | None = None
+    target: TargetPlatform = "evm"
+    spec_filename: str = "rules.spec"
 
 def compute_state_digest(c: AIComposerContext, state: AIComposerState) -> str:
     # not interested in cryptographic bulletproofing, just need *some* digest

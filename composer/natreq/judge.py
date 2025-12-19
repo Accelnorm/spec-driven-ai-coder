@@ -1,6 +1,7 @@
 from typing_extensions import NotRequired, Annotated
 from typing import Literal, Any, cast, Callable
 from functools import partial
+import re
 
 from pydantic import BaseModel, Field
 
@@ -103,6 +104,7 @@ def _format_result(
         buff += f"<requirement>{req_res.requirement}</requirement>\n"
         if req_res.requirement_number in skipped:
             buff += "<classification>IGNORED</classification></result>"
+            res_list.append(buff)
             continue
         buff += f"<classification>{req_res.classification}</classification>\n"
         if req_res.commentary:
@@ -110,6 +112,13 @@ def _format_result(
         buff += "</result>"
         res_list.append(buff)
     return "\n".join(res_list)
+
+
+def _normalize_requirement(text: str) -> str:
+    """Normalize requirement text for comparison by stripping whitespace and removing leading numeric prefix."""
+    text = text.strip()
+    text = re.sub(r'^\d+\.\s*', '', text)
+    return text
 
 def judge_res_checker(
     st: JudgeState,
@@ -126,8 +135,12 @@ def judge_res_checker(
         seen_nums.add(j.requirement_number)
         if j.requirement_number not in range(1, len(reqs) + 1):
             return f"Completion REJECTED: Requirement number {j.requirement_number} is not valid"
-        if j.requirement != reqs[j.requirement_number - 1]:
+        if _normalize_requirement(j.requirement) != _normalize_requirement(reqs[j.requirement_number - 1]):
             return f"Completion REJECTED: Requirement text `{j.requirement}` does not match the original text: `{reqs[j.requirement_number - 1]}`"
+    expected_nums = set(range(1, len(reqs) + 1))
+    if seen_nums != expected_nums:
+        missing = expected_nums - seen_nums
+        return f"Completion REJECTED: Missing judgments for requirement(s): {sorted(missing)}"
     return None
 
 def get_judge_tool(

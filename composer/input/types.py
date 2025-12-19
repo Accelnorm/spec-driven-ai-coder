@@ -1,6 +1,19 @@
 from typing import Optional, Protocol, Literal
 
 TargetPlatform = Literal["evm", "svm"]
+
+def get_spec_filename(target: TargetPlatform, original_name: str | None = None) -> str:
+    """Get the canonical spec filename for the given target platform.
+    
+    For EVM (CVL): always 'rules.spec'
+    For SVM (CVLR): use original filename (e.g., 'checks.rs') or default to 'rules.rs'
+    """
+    if target == "svm":
+        if original_name and original_name.endswith(".rs"):
+            return original_name
+        return "rules.rs"
+    return "rules.spec"
+
 import pathlib
 from dataclasses import dataclass
 
@@ -79,6 +92,8 @@ class WorkflowOptions(RAGDBOptions):
     requirements_oracle: list[str]
     set_reqs: Optional[str]
     skip_reqs: bool
+    
+    no_tdd: bool
 
 
 class ModelOptions(Protocol):

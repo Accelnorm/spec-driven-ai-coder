@@ -1,4 +1,5 @@
 import argparse
+import os
 from typing import TypeVar, Protocol, cast
 from composer.rag.db import DEFAULT_CONNECTION as RAGDB_DEFAULT_CONNECTION
 from composer.audit.db import DEFAULT_CONNECTION as AUDITDB_DEFAULT_CONNECTION
@@ -14,7 +15,7 @@ def _final_resume_option(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("updated_system", help="The new system document, if any. If not provided, the original system doc is used", nargs='?')
 
 def _common_options(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--model", default="claude-sonnet-4-20250514",
+    parser.add_argument("--model", default=os.environ.get("AICOMPOSER_MODEL", "claude-sonnet-4-20250514"),
                         help="Model to use for code generation (default: claude-sonnet-4-20250514)")
     parser.add_argument("--tokens", type=int, default=10_000,
                         help="Token budget for code generation (default: 10,000)")
@@ -50,6 +51,10 @@ def _common_options(parser: argparse.ArgumentParser) -> None:
     # Target platform
     parser.add_argument("--target", choices=["evm", "svm"], default="evm",
                         help="Target platform for verification (default: evm)")
+    
+    # TDD enforcement (for SVM mode)
+    parser.add_argument("--no-tdd", action="store_true",
+                        help="Disable TDD enforcement for SVM mode. By default, SVM mode requires tests to pass before running the prover.")
 
 
 def fresh_workflow_argument_parser() -> TypedArgumentParser[CommandLineArgs]:

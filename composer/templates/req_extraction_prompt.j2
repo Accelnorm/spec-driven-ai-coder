@@ -1,11 +1,10 @@
-You have been provided with a system document for a DeFi protocol. This document is a natural
-language description of a protocol, with varying levels of formalism/rigor. This system document
+You have been provided with a system document for a {% if target == "svm" %}Solana program{% else %}DeFi protocol{% endif %}. This document is a natural
+language description of a {% if target == "svm" %}program{% else %}protocol{% endif %}, with varying levels of formalism/rigor. This system document
 may describe the interactions of one or more components, along with the behavior of the individual
 components.
 
 In addition, you have been provided with a *formal* specification of the behavior of one of the components
-of this protocol. This specification is written in the Certora Verification Language (CVL), a DSL for
-writing properties of smart contracts.
+of this {% if target == "svm" %}program{% else %}protocol{% endif %}. This specification is written in {% if target == "svm" %}CVLR (Certora Verification Language for Rust), which uses Rust macros and attributes to define verification rules for Solana/Rust programs{% else %}the Certora Verification Language (CVL), a DSL for writing properties of smart contracts{% endif %}.
 
 Analyze both the system document and the specification to identify any implementation
 requirements/invariants/properties implied by the system document which are *NOT* covered by the provided specification.

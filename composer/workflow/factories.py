@@ -14,7 +14,7 @@ from graphcore.graph import build_workflow, BoundLLM
 from graphcore.tools.vfs import vfs_tools, VFSAccessor, VFSToolConfig, VFSState
 from graphcore.tools.memory import PostgresMemoryBackend
 
-from composer.workflow.types import Input, PromptParams
+from composer.workflow.types import Input, PromptParams, TargetPlatform
 from composer.core.context import AIComposerContext
 from composer.core.state import AIComposerState
 from composer.input.types import ModelOptions
@@ -45,13 +45,15 @@ def get_memory(ns: str, init_from: str | None = None) -> PostgresMemoryBackend:
     conn = psycopg.connect(conn_string)
     return PostgresMemoryBackend(ns, conn, init_from)
 
-def get_system_prompt() -> str:
+def get_system_prompt(target: TargetPlatform = "evm") -> str:
     """Load and render the system prompt from Jinja template"""
-    return load_jinja_template("system_prompt.j2")
+    template_name = "system_prompt_solana.j2" if target == "svm" else "system_prompt.j2"
+    return load_jinja_template(template_name)
 
-def get_initial_prompt(prompt: PromptParams) -> str:
+def get_initial_prompt(target: TargetPlatform, prompt: PromptParams) -> str:
     """Load and render the initial prompt from Jinja template"""
-    return load_jinja_template("synthesis_prompt.j2", **prompt)
+    template_name = "synthesis_prompt_solana.j2" if target == "svm" else "synthesis_prompt.j2"
+    return load_jinja_template(template_name, **prompt)
 
 
 def create_llm(args: ModelOptions) -> BaseChatModel:
@@ -74,7 +76,8 @@ def create_llm(args: ModelOptions) -> BaseChatModel:
 
 def get_vfs_tools(
     fs_layer: str | None,
-    immutable: bool
+    immutable: bool,
+    target: TargetPlatform = "evm"
 ) -> tuple[list[BaseTool], VFSAccessor[VFSState]]:
     if immutable:
         return vfs_tools(VFSToolConfig(
@@ -82,11 +85,30 @@ def get_vfs_tools(
             immutable=True
         ), VFSState)
     else:
-        return vfs_tools(VFSToolConfig(
-            fs_layer=fs_layer,
-            immutable=False,
-            forbidden_write="^rules.spec$",
-            put_doc_extra= \
+        if target == "svm":
+            # Solana mode: forbid edits to spec files only (agent needs to create Cargo.toml for tests)
+            return vfs_tools(VFSToolConfig(
+                fs_layer=fs_layer,
+                immutable=False,
+                forbidden_write=None,  # No forbidden writes - agent needs full control for Rust project setup
+                put_doc_extra= \
+    """
+    By convention, Rust source files should follow standard Rust module conventions.
+    The main library entry point should be in src/lib.rs.
+
+    You MUST create a valid Cargo.toml for the project to compile and run tests.
+    The Cargo.toml should include necessary dependencies like `cvlr` for CVLR macros.
+
+    IMPORTANT: You may not use this tool to update the specification files.
+    If changes to spec files are necessary, use the propose_spec_change tool or consult the user.
+    """
+            ), AIComposerState)
+        else:
+            return vfs_tools(VFSToolConfig(
+                fs_layer=fs_layer,
+                immutable=False,
+                forbidden_write="^rules.spec$",
+                put_doc_extra= \
     """
     By convention, every Solidity file placed into the virtual filesystem should contain exactly one contract/interface/library definitions.
     Further, the name of the contract/interface/library defined in that file should name the name of the solidity source file sans extension.
@@ -95,25 +117,35 @@ def get_vfs_tools(
     IMPORTANT: You may not use this tool to update the specification, nor should you attempt to
     add new specification files.
     """
-        ), AIComposerState)
+            ), AIComposerState)
 
 def get_cryptostate_builder(
     llm: BaseChatModel,
     prompt_params: PromptParams,
     fs_layer: str | None,
     summarization_threshold : int | None,
-    extra_tools: list[BaseTool] = []
+    extra_tools: list[BaseTool] = [],
+    target: TargetPlatform = "evm"
 ) -> tuple[StateGraph[AIComposerState, AIComposerContext, Input, Any], BoundLLM, VFSAccessor[VFSState]]:
-    (vfs_tooling, mat) = get_vfs_tools(fs_layer=fs_layer, immutable=False)
+    (vfs_tooling, mat) = get_vfs_tools(fs_layer=fs_layer, immutable=False, target=target)
     # import here to avoid loading these for non-composer factory uses
 
-    from composer.tools.prover import certora_prover
     from composer.tools.proposal import propose_spec_change
     from composer.tools.question import human_in_the_loop
     from composer.tools.result import code_result
     from composer.tools.search import cvl_manual_search, cvlr_manual_search
 
-    crypto_tools = [certora_prover, propose_spec_change, human_in_the_loop, code_result, cvl_manual_search, cvlr_manual_search, *vfs_tooling]
+    # Select prover and additional tools based on target platform
+    if target == "svm":
+        from composer.tools.solana_prover import solana_prover
+        from composer.tools.solana_tests import solana_quick_tests
+        prover_tool = solana_prover
+        # For SVM, include quick tests tool for TDD workflow
+        crypto_tools = [solana_quick_tests, prover_tool, propose_spec_change, human_in_the_loop, code_result, cvl_manual_search, cvlr_manual_search, *vfs_tooling]
+    else:
+        from composer.tools.prover import certora_prover
+        prover_tool = certora_prover
+        crypto_tools = [prover_tool, propose_spec_change, human_in_the_loop, code_result, cvl_manual_search, cvlr_manual_search, *vfs_tooling]
     crypto_tools.extend(extra_tools)
 
     conf : SummaryGeneration | None = SummaryGeneration(
@@ -124,8 +156,8 @@ def get_cryptostate_builder(
         state_class=AIComposerState,
         input_type=Input,
         tools_list=crypto_tools,
-        sys_prompt=get_system_prompt(),
-        initial_prompt=get_initial_prompt(prompt_params),
+        sys_prompt=get_system_prompt(target),
+        initial_prompt=get_initial_prompt(target, prompt_params),
         output_key="generated_code",
         unbound_llm=llm,
         context_schema=AIComposerContext,

@@ -5,6 +5,7 @@ import logging
 from dataclasses import dataclass
 import pathlib
 import psycopg
+import importlib.resources
 
 from langchain_core.runnables import RunnableConfig
 from langchain_core.messages import HumanMessage
@@ -13,7 +14,7 @@ from langgraph.types import Command
 
 from graphcore.tools.memory import memory_tool
 
-from composer.input.types import WorkflowOptions, InputData, ResumeFSData, ResumeIdData, ResumeInput, NativeFS
+from composer.input.types import WorkflowOptions, InputData, ResumeFSData, ResumeIdData, ResumeInput, NativeFS, get_spec_filename
 from composer.workflow.factories import get_checkpointer, get_cryptostate_builder, get_store, get_memory, get_vfs_tools, get_memory_ns
 from composer.workflow.types import Input, PromptParams
 from composer.workflow.meta import create_resume_commentary
@@ -46,7 +47,34 @@ def get_reference_input(input_data: InputData, debug_prompt: Optional[str]) -> s
         debug_prompt=debug_prompt)
 
 
+def get_svm_summary_files() -> dict[str, str]:
+    """Load the bundled CVLR summary and inlining files for SVM mode.
+    
+    These files are required by the Certora Solana Prover and are referenced
+    in Cargo.toml under [package.metadata.certora].
+    """
+    summaries_dir = pathlib.Path(__file__).parent.parent.parent / "certora" / "summaries"
+    result = {}
+    
+    summaries_file = summaries_dir / "cvlr_summaries_core.txt"
+    inlining_file = summaries_dir / "cvlr_inlining_core.txt"
+    
+    if summaries_file.exists():
+        result["certora/summaries/cvlr_summaries_core.txt"] = summaries_file.read_text()
+    if inlining_file.exists():
+        result["certora/summaries/cvlr_inlining_core.txt"] = inlining_file.read_text()
+    
+    return result
+
+
 def get_fresh_input(input: InputData, workflow_options: WorkflowOptions) -> Input:
+    spec_filename = get_spec_filename(workflow_options.target, input.spec.basename)
+    vfs_contents: dict[str, str] = {spec_filename: input.spec.read()}
+    
+    # For SVM mode, include the bundled summary/inlining files
+    if workflow_options.target == "svm":
+        vfs_contents.update(get_svm_summary_files())
+    
     return Input(input=[
                 input.intf.to_document_dict(),
                 input.spec.to_document_dict(),
@@ -55,7 +83,7 @@ def get_fresh_input(input: InputData, workflow_options: WorkflowOptions) -> Inpu
                     "type": "text",
                     "text": get_reference_input(input_data=input, debug_prompt=workflow_options.debug_prompt_override)
                 }
-            ], vfs={"rules.spec": input.spec.read()})
+            ], vfs=vfs_contents)
 
 @dataclass
 class InputChangeDesc:
@@ -107,7 +135,13 @@ def get_resume_id_input(input: ResumeIdData, resume_art: ResumeArtifact, workflo
 
     vfs_materialize = resume_art.vfs.to_dict()
     new_vfs = { k: v.decode("utf-8") for (k, v) in vfs_materialize.items() }
-    new_vfs["rules.spec"] = input.new_spec.string_contents
+    spec_filename = get_spec_filename(workflow_options.target, input.new_spec.where.name if hasattr(input.new_spec, 'where') else None)
+    new_vfs[spec_filename] = input.new_spec.string_contents
+    
+    # For SVM mode, ensure summary files are present
+    if workflow_options.target == "svm":
+        new_vfs.update(get_svm_summary_files())
+    
     return Input(
         input=input_messages,
         vfs=new_vfs
@@ -116,9 +150,14 @@ def get_resume_id_input(input: ResumeIdData, resume_art: ResumeArtifact, workflo
 def get_resume_fs_input(input: ResumeFSData, resume_art: ResumeArtifact, workflow_options: WorkflowOptions) -> tuple[Input, InputFileLike, InputFileLike]:
     path = pathlib.Path(input.file_path)
 
-    spec_p = path / "rules.spec"
+    # Try target-specific spec filename first, fall back to rules.spec for backwards compatibility
+    spec_filename = get_spec_filename(workflow_options.target)
+    spec_p = path / spec_filename
     if not spec_p.is_file():
-        raise RuntimeError("Specification file is apparently missing")
+        # Fallback for EVM or legacy projects
+        spec_p = path / "rules.spec"
+        if not spec_p.is_file():
+            raise RuntimeError("Specification file is apparently missing")
     new_spec = spec_p.read_text()
 
     intf_p = path / resume_art.interface_path
@@ -218,6 +257,14 @@ def execute_ai_composer_workflow(
         from_previous_ns
     )
 
+    # Initialize CVLR RAG database early for requirements extraction (SVM mode)
+    cvlr_rag_db: PostgreSQLRAGDatabase | None = None
+    if workflow_options.target == "svm":
+        try:
+            cvlr_rag_db = PostgreSQLRAGDatabase(CVLR_RAG_CONNECTION, get_rag_model(), skip_test=True)
+        except Exception:
+            logger.warning("CVLR RAG database not available - cvlr_manual_search will be disabled")
+
     extra_reqs = store.get((thread_id,), "requirements")
     reqs_list : list[str] | None
     if extra_reqs is None:
@@ -239,7 +286,9 @@ def execute_ai_composer_workflow(
                 spec_file,
                 req_memories,
                 resume_art,
-                workflow_options.requirements_oracle
+                workflow_options.requirements_oracle,
+                target=workflow_options.target,
+                cvlr_rag_db=cvlr_rag_db
             )
             reqs_list = reqs
         store.put((thread_id,), "requirements", {"reqs": reqs_list})
@@ -270,7 +319,8 @@ def execute_ai_composer_workflow(
         fs_layer=fs_layer,
         prompt_params=prompt_params,
         summarization_threshold=workflow_options.summarization_threshold,
-        extra_tools=extra_tools
+        extra_tools=extra_tools,
+        target=workflow_options.target
     )
 
     audit_db.register_run(
@@ -313,18 +363,19 @@ def execute_ai_composer_workflow(
     )   
 
     rag_db = PostgreSQLRAGDatabase(rag_connection, get_rag_model(), skip_test=True)
-    # Initialize CVLR RAG database for Solana/CVLR manual search
-    cvlr_rag_db: PostgreSQLRAGDatabase | None = None
-    try:
-        cvlr_rag_db = PostgreSQLRAGDatabase(CVLR_RAG_CONNECTION, get_rag_model(), skip_test=True)
-    except Exception:
-        logger.warning("CVLR RAG database not available - cvlr_manual_search will be disabled")
+    # cvlr_rag_db was initialized earlier for requirements extraction
 
     required_validations : list[ValidationType] = [prover]
     if reqs_list is not None:
         required_validations.append(req_type)
     
-    work_context = AIComposerContext(llm=bound_llm, rag_db=rag_db, prover_opts=prover_opts, vfs_materializer=materializer, required_validations=required_validations, cvlr_rag_db=cvlr_rag_db)
+    # TDD enforcement: for SVM mode, require tests to pass before prover (unless --no-tdd)
+    if workflow_options.target == "svm" and not workflow_options.no_tdd:
+        from composer.core.validation import tests as tests_type
+        required_validations.append(tests_type)
+    
+    spec_filename = get_spec_filename(workflow_options.target, spec_file.basename)
+    work_context = AIComposerContext(llm=bound_llm, rag_db=rag_db, prover_opts=prover_opts, vfs_materializer=materializer, required_validations=required_validations, cvlr_rag_db=cvlr_rag_db, target=workflow_options.target, spec_filename=spec_filename)
 
     curr_state_config: RunnableConfig = {
         "configurable": {
@@ -402,8 +453,20 @@ def execute_ai_composer_workflow(
             return 1
         if audit_db is not None:
             res_commentary = create_resume_commentary(final_state, llm=llm)
+            # Validate interface_path exists in VFS; fall back to first source file if not
+            intf_path = res_commentary.interface_path
+            if materializer.get(final_state, intf_path) is None:
+                # LLM hallucinated a path that doesn't exist - use first source file
+                if result.source:
+                    intf_path = result.source[0]
+                else:
+                    # Last resort: find any .rs or .sol file in VFS
+                    for (path, _) in materializer.iterate(final_state):
+                        if path.endswith(".rs") or path.endswith(".sol"):
+                            intf_path = path
+                            break
             audit_db.register_complete(
-                thread_id, materializer.iterate(final_state), res_commentary.interface_path, res_commentary.commentary
+                thread_id, materializer.iterate(final_state), intf_path, res_commentary.commentary
             )
 
         assert isinstance(result, ResultStateSchema)

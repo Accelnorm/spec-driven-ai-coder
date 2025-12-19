@@ -3,4 +3,8 @@
 cryptosafe.db
 *.db*
 tags
-scripts/cvl_manual.html
+scripts/*.html
+.env
+.venv/
+.ragvenv/
+.windsurf/

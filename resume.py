@@ -14,10 +14,6 @@ def main() -> int:
     parser = resume_workflow_parser()
     args = parser.parse_args()
 
-    if args.target == "svm":
-        print("Error: SVM (Solana) target is not yet implemented.")
-        return 1
-
     input_data: ResumeIdData | ResumeFSData
 
     match args.command:
@@ -43,6 +39,9 @@ def main() -> int:
             session_id_file.write_text(args.src_thread_id)
             return 0
         case "resume-dir" | "resume-id":
+            if args.target == "svm":
+                print("Error: SVM (Solana) target is not yet implemented.")
+                return 1
             commentary: str | None = None
             if args.commentary is not None:
                 if args.commentary.startswith('@'):
