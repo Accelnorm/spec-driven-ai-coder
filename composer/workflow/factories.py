@@ -77,7 +77,8 @@ def create_llm(args: ModelOptions) -> BaseChatModel:
 def get_vfs_tools(
     fs_layer: str | None,
     immutable: bool,
-    target: TargetPlatform = "evm"
+    target: TargetPlatform = "evm",
+    spec_filename: str | None = None
 ) -> tuple[list[BaseTool], VFSAccessor[VFSState]]:
     if immutable:
         return vfs_tools(VFSToolConfig(
@@ -87,10 +88,13 @@ def get_vfs_tools(
     else:
         if target == "svm":
             # Solana mode: forbid edits to spec files only (agent needs to create Cargo.toml for tests)
+            forbidden_write = None
+            if spec_filename is not None:
+                forbidden_write = "^" + spec_filename.replace("\\", "\\\\").replace(".", "\\.") + "$"
             return vfs_tools(VFSToolConfig(
                 fs_layer=fs_layer,
                 immutable=False,
-                forbidden_write=None,  # No forbidden writes - agent needs full control for Rust project setup
+                forbidden_write=forbidden_write,
                 put_doc_extra= \
     """
     By convention, Rust source files should follow standard Rust module conventions.
@@ -125,9 +129,10 @@ def get_cryptostate_builder(
     fs_layer: str | None,
     summarization_threshold : int | None,
     extra_tools: list[BaseTool] = [],
-    target: TargetPlatform = "evm"
+    target: TargetPlatform = "evm",
+    spec_filename: str | None = None
 ) -> tuple[StateGraph[AIComposerState, AIComposerContext, Input, Any], BoundLLM, VFSAccessor[VFSState]]:
-    (vfs_tooling, mat) = get_vfs_tools(fs_layer=fs_layer, immutable=False, target=target)
+    (vfs_tooling, mat) = get_vfs_tools(fs_layer=fs_layer, immutable=False, target=target, spec_filename=spec_filename)
     # import here to avoid loading these for non-composer factory uses
 
     from composer.tools.proposal import propose_spec_change

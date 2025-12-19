@@ -315,13 +315,16 @@ def execute_ai_composer_workflow(
         extra_tools.append(memory)
 
 
+    spec_filename = get_spec_filename(workflow_options.target, spec_file.basename)
+
     (workflow_builder, bound_llm, materializer) = get_cryptostate_builder(
         llm=llm,
         fs_layer=fs_layer,
         prompt_params=prompt_params,
         summarization_threshold=workflow_options.summarization_threshold,
         extra_tools=extra_tools,
-        target=workflow_options.target
+        target=workflow_options.target,
+        spec_filename=spec_filename
     )
 
     audit_db.register_run(
@@ -375,7 +378,6 @@ def execute_ai_composer_workflow(
         from composer.core.validation import tests as tests_type
         required_validations.append(tests_type)
     
-    spec_filename = get_spec_filename(workflow_options.target, spec_file.basename)
     work_context = AIComposerContext(llm=bound_llm, rag_db=rag_db, prover_opts=prover_opts, vfs_materializer=materializer, required_validations=required_validations, cvlr_rag_db=cvlr_rag_db, target=workflow_options.target, spec_filename=spec_filename)
 
     curr_state_config: RunnableConfig = {
