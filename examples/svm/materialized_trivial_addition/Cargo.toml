@@ -1,5 +1,5 @@
 [package]
-name = "svm_trivial"
+name = "simple-addition"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,9 +8,10 @@ crate-type = ["cdylib"]
 
 [features]
 certora = []
+rt = []
 
 [dependencies]
-cvlr = { path = "../../../cvlr/cvlr" }
+cvlr = "0.4"
 
 [package.metadata.certora]
 sources = [

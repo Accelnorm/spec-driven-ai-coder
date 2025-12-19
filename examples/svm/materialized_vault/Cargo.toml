@@ -1,0 +1,30 @@
+[package]
+name = "solana-vault"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[features]
+default = []
+certora = ["cvlr", "cvlr-solana"]
+no-entrypoint = []
+rt = []
+
+[dependencies]
+solana-program = "1.18"
+bytemuck = { version = "1.14", features = ["derive"] }
+spl-pod = "0.1"
+
+# Optional dependencies for formal verification
+cvlr = { version = "0.4", optional = true }
+cvlr-solana = { version = "0.4", optional = true }
+
+[package.metadata.certora]
+sources = [
+    "Cargo.toml",
+    "src/**/*.rs"
+]
+solana_inlining = ["certora/summaries/cvlr_inlining_core.txt"]
+solana_summaries = ["certora/summaries/cvlr_summaries_core.txt"]

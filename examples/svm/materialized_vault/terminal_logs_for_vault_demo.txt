@@ -1,0 +1,733 @@
+(.venv) user@DESKTOP-6R91E13:~/certora/AIComposer$ python3 main.py \
+  examples/svm_experimental/vault_application/src/certora/spec.rs \
+  examples/svm_experimental/vault_application/src/lib.rs \
+  examples/svm_experimental/vault_application/system_doc.txt \
+  --target svm \
+  --skip-reqs \
+  --model claude-haiku-4-5-20251001 \
+  --tokens 4000 \
+  --thinking-tokens 1024 \
+  --no-fv
+Reading input files...
+Found existing lib.rs with ID: file_011CWGJoBpb7zYk9UKyZgGn3 (canonical name 0xc3eeec45_lib.rs)
+Found existing spec.rs with ID: file_011CWGJoGnjdCxePJJPBWZDf (canonical name 0x54eda4a7_spec.rs)
+Found existing system_doc.txt with ID: file_011CWGJoJpGWoKXsK8zm2hJj (canonical name 0x6dc2bf11_system_doc.txt)
+Starting AI Composer workflow...
+Selected thread id: crypto_session_7972464d-dd08-11f0-bd32-1c697aaa77f7
+<All keys matched successfully>
+<All keys matched successfully>
+Debug handler installed (Ctrl+C to access)
+current checkpoint: 1f0dd087-ee16-67b6-bfff-7158ad1e3180
+current checkpoint: 1f0dd087-ee1c-60da-8000-31fcc836ab60
+From node: initial
+[System prompt]
+[Initial prompt]
+[AI turn]
+ > Thinking...
+ > Text: I'll start by examining the existing files and und...
+ > Call tool: list_files
+ -- Token stats:
+ -> Cache read: 0
+ -> Input: 9
+ -> Cache write: 9979
+Put file(s):
+ > spec.rs
+ > certora/summaries/cvlr_summaries_core.txt
+ > certora/summaries/cvlr_inlining_core.txt
+current checkpoint: 1f0dd088-22ba-6844-8001-e1e60474f4ba
+From node: tools
+[Tool result]
+current checkpoint: 1f0dd088-22c4-6ccb-8002-dbff21476ee5
+From node: tool_result
+[AI turn]
+ > Text: Let me examine the spec file to understand the ver...
+ > Call tool: get_file
+ -- Token stats:
+ -> Cache read: 9979
+ -> Input: 5
+ -> Cache write: 501
+current checkpoint: 1f0dd088-3a18-63b1-8003-a604a362187f
+From node: tools
+[Tool result]
+current checkpoint: 1f0dd088-3a22-67e8-8004-75c2027ba7da
+From node: tool_result
+[AI turn]
+ > Text: Now I understand the structure. I need to create t...
+ > Call tool: put_file
+ -- Token stats:
+ -> Cache read: 10480
+ -> Input: 5
+ -> Cache write: 1352
+current checkpoint: 1f0dd088-d2c6-684f-8005-ca3bf10b42cb
+From node: tools
+[Tool result]
+Put file(s):
+ > src/state.rs
+ > src/processor.rs
+ > src/certora.rs
+current checkpoint: 1f0dd088-d2cf-60d2-8006-fd62c5456f8b
+From node: tool_result
+[AI turn]
+ > Text: Now let me create the proper `Cargo.toml` with the...
+ > Call tool: put_file
+ -- Token stats:
+ -> Cache read: 11832
+ -> Input: 5
+ -> Cache write: 2628
+current checkpoint: 1f0dd088-fae4-6bdf-8007-be3ed185e489
+From node: tools
+[Tool result]
+Put file(s):
+ > Cargo.toml
+current checkpoint: 1f0dd088-faea-6c2b-8008-99ee17415c63
+From node: tool_result
+[AI turn]
+ > Text: Now I need to update the lib.rs to properly import...
+ > Call tool: put_file
+ -- Token stats:
+ -> Cache read: 14460
+ -> Input: 5
+ -> Cache write: 386
+current checkpoint: 1f0dd089-3094-6e61-8009-4ea8a644b92d
+From node: tools
+[Tool result]
+Put file(s):
+ > src/lib.rs
+current checkpoint: 1f0dd089-309d-6690-800a-ce881d5f3178
+From node: tool_result
+[AI turn]
+ > Text: Now I need to move the spec.rs file to the certora...
+ > Call tool: put_file
+ -- Token stats:
+ -> Cache read: 14846
+ -> Input: 5
+ -> Cache write: 636
+current checkpoint: 1f0dd089-7da3-6641-800b-8e5f39fb4510
+From node: tools
+[Tool result]
+Put file(s):
+ > src/certora/spec.rs
+current checkpoint: 1f0dd089-7da9-6083-800c-955b6c18e4bc
+From node: tool_result
+[AI turn]
+ > Text: Now I need to update the certora.rs file to includ...
+ > Call tool: put_file
+ -- Token stats:
+ -> Cache read: 15482
+ -> Input: 5
+ -> Cache write: 1485
+current checkpoint: 1f0dd089-a344-6237-800d-6a18ff116350
+From node: tools
+[Tool result]
+Put file(s):
+ > src/certora.rs
+current checkpoint: 1f0dd089-a34e-6f15-800e-864058f50821
+From node: tool_result
+[AI turn]
+ > Text: Now let's test if the code compiles:...
+ > Call tool: solana_quick_tests
+ -- Token stats:
+ -> Cache read: 16967
+ -> Input: 5
+ -> Cache write: 307
+current checkpoint: 1f0dd089-bfb1-6fc1-800f-f476bd77fc0f
+From node: tools
+[Tool result]
+current checkpoint: 1f0dd089-e61e-67a4-8010-617787deb6eb
+From node: tool_result
+[AI turn]
+ > Text: I need to fix the version constraints for cvlr-sol...
+ > Call tool: put_file
+ -- Token stats:
+ -> Cache read: 17274
+ -> Input: 5
+ -> Cache write: 210
+current checkpoint: 1f0dd08a-065f-69b4-8011-25af857053bf
+From node: tools
+[Tool result]
+Put file(s):
+ > Cargo.toml
+current checkpoint: 1f0dd08a-0668-6338-8012-5fc68c3ba8df
+From node: tool_result
+[AI turn]
+ > Call tool: solana_quick_tests
+ -- Token stats:
+ -> Cache read: 17484
+ -> Input: 5
+ -> Cache write: 393
+current checkpoint: 1f0dd08a-1a02-6cba-8013-f693bc758bb1
+From node: tools
+[Tool result]
+current checkpoint: 1f0dd08c-e109-61c5-8014-8dafb8cecbd3
+From node: tool_result
+[AI turn]
+ > Text: Great! Now let's run the CVLR runtime tests to che...
+ > Call tool: solana_quick_tests
+ -- Token stats:
+ -> Cache read: 17877
+ -> Input: 5
+ -> Cache write: 541
+current checkpoint: 1f0dd08c-f0a4-630a-8015-15c692fc38ab
+From node: tools
+[Tool result]
+current checkpoint: 1f0dd090-37cd-65aa-8016-2b5837ba02df
+From node: tool_result
+[AI turn]
+ > Text: I need to look at the correct CVLR macros. Let me ...
+ > Call tool: cvl_manual_search
+ -- Token stats:
+ -> Cache read: 18418
+ -> Input: 5
+ -> Cache write: 2411
+current checkpoint: 1f0dd090-50b9-6fb3-8017-b6a9068b32e8
+From node: tools
+[Tool result]
+current checkpoint: 1f0dd090-5384-6b37-8018-8a8644d18a4b
+From node: tool_result
+[AI turn]
+ > Text: The search is for CVL, but I need CVLR (Certora Ve...
+ > Call tool: cvlr_manual_search
+ -- Token stats:
+ -> Cache read: 20829
+ -> Input: 6
+ -> Cache write: 2994
+current checkpoint: 1f0dd090-70e3-6d40-8019-b80b20a7051f
+From node: tools
+[Tool result]
+current checkpoint: 1f0dd090-7250-6e5b-801a-8c611005f2b6
+From node: tool_result
+[AI turn]
+ > Text: Perfect! Now I see the correct macros are `cvlr_as...
+ > Call tool: put_file
+ -- Token stats:
+ -> Cache read: 23823
+ -> Input: 6
+ -> Cache write: 3583
+current checkpoint: 1f0dd090-939a-6f8a-801b-d67d8b6603cf
+From node: tools
+[Tool result]
+Put file(s):
+ > src/certora.rs
+current checkpoint: 1f0dd090-93a0-655f-801c-be0a3a56b977
+From node: tool_result
+[AI turn]
+ > Call tool: solana_quick_tests
+ -- Token stats:
+ -> Cache read: 27406
+ -> Input: 5
+ -> Cache write: 336
+current checkpoint: 1f0dd090-aaf2-6466-801d-29cdd7c0c8cb
+From node: tools
+[Tool result]
+current checkpoint: 1f0dd093-ed94-6892-801e-f2174cffce27
+From node: tool_result
+[AI turn]
+ > Text: Excellent! All tests pass. Now let me verify all t...
+ > Call tool: list_files
+ -- Token stats:
+ -> Cache read: 27742
+ -> Input: 5
+ -> Cache write: 1017
+current checkpoint: 1f0dd094-05f7-6d46-801f-ce459bc963d6
+From node: tools
+[Tool result]
+current checkpoint: 1f0dd094-0603-6cb6-8020-f7e371c53003
+From node: tool_result
+[AI turn]
+ > Text: Perfect! Let me verify the implementation is corre...
+ > Call tool: get_file
+ -- Token stats:
+ -> Cache read: 28759
+ -> Input: 5
+ -> Cache write: 146
+current checkpoint: 1f0dd094-1828-6ddf-8021-d96a3f7df653
+From node: tools
+[Tool result]
+current checkpoint: 1f0dd094-1833-6099-8022-58d8cb7e5fb6
+From node: tool_result
+[AI turn]
+ > Call tool: get_file
+ -- Token stats:
+ -> Cache read: 28905
+ -> Input: 5
+ -> Cache write: 571
+current checkpoint: 1f0dd094-2dc2-63aa-8023-abc2fb4b0dfd
+From node: tools
+[Tool result]
+current checkpoint: 1f0dd094-2dcc-6ad4-8024-afa95a989097
+From node: tool_result
+[AI turn]
+ > Call tool: get_file
+ -- Token stats:
+ -> Cache read: 29476
+ -> Input: 5
+ -> Cache write: 306
+current checkpoint: 1f0dd094-4041-6ec2-8025-19a1c7c8a181
+From node: tools
+[Tool result]
+current checkpoint: 1f0dd094-404c-624e-8026-91978583c55f
+From node: tool_result
+[AI turn]
+ > Call tool: get_file
+ -- Token stats:
+ -> Cache read: 29782
+ -> Input: 5
+ -> Cache write: 1884
+current checkpoint: 1f0dd094-57e0-6c78-8027-9636a5d6846a
+From node: tools
+[Tool result]
+current checkpoint: 1f0dd094-57ef-6367-8028-1a30c1e7f36a
+From node: tool_result
+[AI turn]
+ > Text: Now let me run the full test suite one more time t...
+ > Call tool: solana_quick_tests
+ -- Token stats:
+ -> Cache read: 31666
+ -> Input: 5
+ -> Cache write: 273
+current checkpoint: 1f0dd094-6d94-6202-8029-4d76c7ebb64c
+From node: tools
+[Tool result]
+current checkpoint: 1f0dd097-982e-65db-802a-0265ecce2d57
+From node: tool_result
+[AI turn]
+ > Text: Perfect! All tests pass. Let me create a summary o...
+ > Call tool: result
+ -- Token stats:
+ -> Cache read: 31939
+ -> Input: 5
+ -> Cache write: 1036
+current checkpoint: 1f0dd097-fa7e-6dcb-802b-8e2f4019dde6
+From node: tools
+[Tool result]
+current checkpoint: 1f0dd097-fa91-69d6-802c-c4f4d343f976
+
+================================================================================
+CODE GENERATION COMPLETED
+================================================================================
+Generated Source Files:
+
+--- src/lib.rs ---
+use solana_program::{
+    account_info::AccountInfo, declare_id, entrypoint::ProgramResult, pubkey::Pubkey,
+};
+pub mod processor;
+pub mod state;
+
+// Include formal verification module only if certora feature is enabled.
+#[cfg(feature = "certora")]
+pub mod certora;
+
+#[cfg(not(feature = "certora"))]
+use solana_program::msg;
+// If certora feature is enabled, msg should be substituted with `clog!`.
+#[cfg(feature = "certora")]
+use cvlr::clog as msg;
+
+declare_id!("4tjxVuepBgMVCbrdN3qx9pzt5zFy2bCwgyVrtidXY85o");
+
+#[cfg(not(feature = "no-entrypoint"))]
+use solana_program::entrypoint;
+
+#[cfg(not(feature = "no-entrypoint"))]
+entrypoint!(process_instruction);
+
+pub fn process_instruction(
+    _program_id: &Pubkey,
+    accounts: &[AccountInfo],
+    instruction_data: &[u8],
+) -> ProgramResult {
+    let (instruction_discriminant, instruction_data) = instruction_data.split_at(1);
+    match instruction_discriminant[0] {
+        0 => {
+            msg!("Instruction: deposit");
+            processor::process_deposit(accounts, instruction_data)?;
+        }
+        1 => {
+            msg!("Instruction: withdraw");
+            processor::process_withdraw(accounts, instruction_data)?;
+        }
+        2 => {
+            msg!("Instruction: reward");
+            processor::process_reward(accounts, instruction_data)?;
+        }
+        3 => {
+            msg!("Instruction: slash");
+            processor::process_slash(accounts, instruction_data)?;
+        }
+        _ => {
+            msg!("Error: unknown instruction")
+        }
+    }
+    Ok(())
+}
+
+
+--- src/state.rs ---
+use bytemuck::{Pod, Zeroable};
+use solana_program::pubkey::Pubkey;
+use spl_pod::primitives::PodU64;
+
+/// The vault account data structure.
+/// This is a fixed-layout POD struct suitable for on-chain storage.
+#[repr(C)]
+#[derive(Copy, Clone, Debug, Default, Pod, Zeroable)]
+pub struct Vault {
+    /// The vault owner (authority)
+    pub owner: Pubkey,
+    /// Total shares outstanding
+    pub shares_total: PodU64,
+    /// Total tokens in vault
+    pub token_total: PodU64,
+}
+
+impl Vault {
+    /// Create a new vault with the given owner
+    pub fn new(owner: Pubkey) -> Self {
+        Vault {
+            owner,
+            shares_total: PodU64::from(0),
+            token_total: PodU64::from(0),
+        }
+    }
+}
+
+
+--- src/processor.rs ---
+use crate::state::Vault;
+use solana_program::{
+    account_info::AccountInfo, entrypoint::ProgramResult, program_error::ProgramError,
+};
+use bytemuck::Pod;
+
+/// Process a deposit instruction.
+/// Takes tokens, returns shares.
+/// 
+/// # Arguments
+/// - `accounts`: Account array (must have vault account as first)
+/// - `instruction_data`: 8 bytes representing the number of tokens to deposit
+pub fn process_deposit(accounts: &[AccountInfo], instruction_data: &[u8]) -> ProgramResult {
+    // Extract token amount from instruction data
+    let token_amount = if instruction_data.len() >= 8 {
+        u64::from_le_bytes([0u8; 8].map(|_| 0)) // Will be filled
+    } else {
+        return Err(ProgramError::InvalidInstructionData);
+    };
+    
+    // Get vault account
+    let vault_account = accounts.first().ok_or(ProgramError::NotEnoughAccountKeys)?;
+    
+    // Borrow and read vault data
+    let mut vault_data = vault_account.data.borrow_mut();
+    let vault: &mut Vault = bytemuck::from_bytes_mut(&mut vault_data);
+    
+    // Parse token amount
+    let mut token_bytes = [0u8; 8];
+    token_bytes.copy_from_slice(&instruction_data[..8]);
+    let token_amount = u64::from_le_bytes(token_bytes);
+    
+    // Calculate shares to mint
+    let shares_to_mint = if vault.token_total == 0.into() {
+        // If vault is empty, 1:1 ratio
+        token_amount
+    } else {
+        // shares / tokens = shares_total / token_total
+        // shares_to_mint = (token_amount * shares_total) / token_total
+        let shares_total: u64 = vault.shares_total.into();
+        let token_total: u64 = vault.token_total.into();
+        (token_amount as u128).saturating_mul(shares_total as u128)
+            .saturating_div(token_total as u128) as u64
+    };
+    
+    // Update vault
+    let current_tokens: u64 = vault.token_total.into();
+    let current_shares: u64 = vault.shares_total.into();
+    vault.token_total = (current_tokens.saturating_add(token_amount)).into();
+    vault.shares_total = (current_shares.saturating_add(shares_to_mint)).into();
+    
+    Ok(())
+}
+
+/// Process a withdrawal instruction.
+/// Burns shares, returns tokens.
+/// 
+/// # Arguments
+/// - `accounts`: Account array (must have vault account as first)
+/// - `instruction_data`: 8 bytes representing the number of shares to burn
+pub fn process_withdraw(accounts: &[AccountInfo], instruction_data: &[u8]) -> ProgramResult {
+    // Get vault account
+    let vault_account = accounts.first().ok_or(ProgramError::NotEnoughAccountKeys)?;
+    
+    // Parse shares amount
+    let mut shares_bytes = [0u8; 8];
+    shares_bytes.copy_from_slice(&instruction_data[..8.min(instruction_data.len())]);
+    let shares_amount = u64::from_le_bytes(shares_bytes);
+    
+    // Borrow and read vault data
+    let mut vault_data = vault_account.data.borrow_mut();
+    let vault: &mut Vault = bytemuck::from_bytes_mut(&mut vault_data);
+    
+    // Calculate tokens to return
+    let tokens_to_return = if vault.shares_total == 0.into() {
+        0
+    } else {
+        // tokens / shares = token_total / shares_total
+        // tokens_to_return = (shares_amount * token_total) / shares_total
+        let shares_total: u64 = vault.shares_total.into();
+        let token_total: u64 = vault.token_total.into();
+        (shares_amount as u128).saturating_mul(token_total as u128)
+            .saturating_div(shares_total as u128) as u64
+    };
+    
+    // Update vault
+    let current_tokens: u64 = vault.token_total.into();
+    let current_shares: u64 = vault.shares_total.into();
+    vault.token_total = (current_tokens.saturating_sub(tokens_to_return)).into();
+    vault.shares_total = (current_shares.saturating_sub(shares_amount)).into();
+    
+    Ok(())
+}
+
+/// Process a reward instruction.
+/// Adds tokens to the vault without minting shares.
+/// 
+/// # Arguments
+/// - `accounts`: Account array (must have vault account as first)
+/// - `instruction_data`: 8 bytes representing the number of tokens to add
+pub fn process_reward(accounts: &[AccountInfo], instruction_data: &[u8]) -> ProgramResult {
+    // Get vault account
+    let vault_account = accounts.first().ok_or(ProgramError::NotEnoughAccountKeys)?;
+    
+    // Parse token amount
+    let mut token_bytes = [0u8; 8];
+    token_bytes.copy_from_slice(&instruction_data[..8.min(instruction_data.len())]);
+    let token_amount = u64::from_le_bytes(token_bytes);
+    
+    // Borrow and read vault data
+    let mut vault_data = vault_account.data.borrow_mut();
+    let vault: &mut Vault = bytemuck::from_bytes_mut(&mut vault_data);
+    
+    // Update vault - only increase tokens, shares stay the same
+    let current_tokens: u64 = vault.token_total.into();
+    vault.token_total = (current_tokens.saturating_add(token_amount)).into();
+    
+    Ok(())
+}
+
+/// Process a slash instruction.
+/// Removes tokens from the vault without burning shares.
+/// This can cause insolvency.
+/// 
+/// # Arguments
+/// - `accounts`: Account array (must have vault account as first)
+/// - `instruction_data`: 8 bytes representing the number of tokens to remove
+pub fn process_slash(accounts: &[AccountInfo], instruction_data: &[u8]) -> ProgramResult {
+    // Get vault account
+    let vault_account = accounts.first().ok_or(ProgramError::NotEnoughAccountKeys)?;
+    
+    // Parse token amount
+    let mut token_bytes = [0u8; 8];
+    token_bytes.copy_from_slice(&instruction_data[..8.min(instruction_data.len())]);
+    let token_amount = u64::from_le_bytes(token_bytes);
+    
+    // Borrow and read vault data
+    let mut vault_data = vault_account.data.borrow_mut();
+    let vault: &mut Vault = bytemuck::from_bytes_mut(&mut vault_data);
+    
+    // Update vault - decrease tokens, shares stay the same
+    // This may cause insolvency (shares_total > token_total)
+    let current_tokens: u64 = vault.token_total.into();
+    vault.token_total = (current_tokens.saturating_sub(token_amount)).into();
+    
+    Ok(())
+}
+
+
+--- src/certora.rs ---
+//! Formal verification module for the vault.
+
+pub mod spec;
+
+/// Macro to assume the solvency property holds.
+/// Solvency: shares_total <= token_total
+#[macro_export]
+macro_rules! assume_solvency {
+    ($fv_vault:expr) => {
+        cvlr::cvlr_assume!($fv_vault.shares_total <= $fv_vault.token_total);
+    };
+}
+
+/// Macro to assert the solvency property holds.
+/// Solvency: shares_total <= token_total
+#[macro_export]
+macro_rules! assert_solvency {
+    ($fv_vault:expr) => {
+        cvlr::cvlr_assert!($fv_vault.shares_total <= $fv_vault.token_total);
+    };
+}
+
+
+--- src/certora/spec.rs ---
+//! This module contains the specification for the vault application.
+
+use crate::{assert_solvency, assume_solvency, processor::*, state::Vault};
+use cvlr::{mathint::NativeInt, prelude::*};
+use cvlr_solana::cvlr_deserialize_nondet_accounts;
+use solana_program::account_info::{next_account_info, AccountInfo};
+
+/// Structure tracking the state for the formal verification (FV) of the vault.
+struct FvVault {
+    shares_total: NativeInt,
+    token_total: NativeInt,
+}
+
+impl From<&Vault> for FvVault {
+    fn from(vault: &Vault) -> FvVault {
+        let shares_total: u64 = vault.shares_total.into();
+        let token_total: u64 = vault.token_total.into();
+        FvVault {
+            shares_total: shares_total.into(),
+            token_total: token_total.into(),
+        }
+    }
+}
+
+impl<'a> From<&AccountInfo<'a>> for FvVault {
+    fn from(acc_info: &AccountInfo) -> FvVault {
+        let mut data = acc_info.data.borrow_mut();
+        let vault: &Vault = bytemuck::from_bytes_mut(&mut data[..]);
+        FvVault::from(vault)
+    }
+}
+
+/// Verifies that a vault account remains solvent before and after a withdrawal
+/// operation.
+#[rule]
+pub fn rule_vault_solvency_withdraw() {
+    let account_infos = cvlr_deserialize_nondet_accounts();
+    let account_info_iter = &mut account_infos.iter();
+    let vault_account: &AccountInfo = next_account_info(account_info_iter).unwrap();
+
+    let fv_vault_pre: FvVault = vault_account.into();
+    assume_solvency!(fv_vault_pre);
+
+    let shares: u64 = nondet();
+    let shares_instruction_data = &shares.to_le_bytes();
+    process_withdraw(&account_infos, shares_instruction_data).unwrap();
+
+    let fv_vault_post: FvVault = vault_account.into();
+    assert_solvency!(fv_vault_post);
+}
+
+/// Verifies that a vault account remains solvent before and after a deposit
+/// operation.
+#[rule]
+pub fn rule_vault_solvency_deposit() {
+    let account_infos = cvlr_deserialize_nondet_accounts();
+    let account_info_iter = &mut account_infos.iter();
+    let vault_account: &AccountInfo = next_account_info(account_info_iter).unwrap();
+
+    let fv_vault_pre: FvVault = vault_account.into();
+    assume_solvency!(fv_vault_pre);
+
+    let token: u64 = nondet();
+    let token_instruction_data = &token.to_le_bytes();
+    process_deposit(&account_infos, token_instruction_data).unwrap();
+
+    let fv_vault_post: FvVault = vault_account.into();
+    assert_solvency!(fv_vault_post);
+}
+
+/// Verifies that a vault account remains solvent before and after a reward
+/// operation.
+#[rule]
+pub fn rule_vault_solvency_reward() {
+    let account_infos = cvlr_deserialize_nondet_accounts();
+    let account_info_iter = &mut account_infos.iter();
+    let vault_account: &AccountInfo = next_account_info(account_info_iter).unwrap();
+
+    let fv_vault_pre: FvVault = vault_account.into();
+    assume_solvency!(fv_vault_pre);
+
+    let token: u64 = nondet();
+    let token_instruction_data = &token.to_le_bytes();
+    process_reward(&account_infos, token_instruction_data).unwrap();
+
+    let fv_vault_post: FvVault = vault_account.into();
+    assert_solvency!(fv_vault_post);
+}
+
+/// Verifies that a vault account remains solvent before and after a slash
+/// operation.
+/// This rule is expected to fail.
+#[rule]
+pub fn rule_vault_solvency_slash() {
+    let account_infos = cvlr_deserialize_nondet_accounts();
+    let account_info_iter = &mut account_infos.iter();
+    let vault_account: &AccountInfo = next_account_info(account_info_iter).unwrap();
+
+    let fv_vault_pre: FvVault = vault_account.into();
+    assume_solvency!(fv_vault_pre);
+
+    let token: u64 = nondet();
+    let token_instruction_data = &token.to_le_bytes();
+    process_slash(&account_infos, token_instruction_data).unwrap();
+
+    let fv_vault_post: FvVault = vault_account.into();
+    assert_solvency!(fv_vault_post);
+}
+
+
+--- Cargo.toml ---
+[package]
+name = "solana-vault"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[features]
+default = []
+certora = ["cvlr", "cvlr-solana"]
+no-entrypoint = []
+rt = []
+
+[dependencies]
+solana-program = "1.18"
+bytemuck = { version = "1.14", features = ["derive"] }
+spl-pod = "0.1"
+
+# Optional dependencies for formal verification
+cvlr = { version = "0.4", optional = true }
+cvlr-solana = { version = "0.4", optional = true }
+
+[package.metadata.certora]
+sources = [
+    "Cargo.toml",
+    "src/**/*.rs"
+]
+solana_inlining = ["certora/summaries/cvlr_inlining_core.txt"]
+solana_summaries = ["certora/summaries/cvlr_summaries_core.txt"]
+
+
+Comments: Implemented a complete Solana vault program with formal verification support using CVLR. The implementation includes:
+
+1. **State Management** (src/state.rs): A fixed-layout Vault struct with owner, shares_total, and token_total fields using bytemuck for proper serialization.
+
+2. **Core Operations** (src/processor.rs): Four processor functions implementing the vault logic:
+   - Deposit: Takes tokens and mints shares proportionally (1:1 if vault empty, otherwise proportional to vault state)
+   - Withdraw: Burns shares and returns proportional tokens
+   - Reward: Adds tokens without minting shares (increases existing share value)
+   - Slash: Removes tokens without burning shares (can cause insolvency)
+   
+   All operations use saturating arithmetic to prevent overflow issues.
+
+3. **Formal Verification** (src/certora.rs, src/certora/spec.rs): 
+   - Defines solvency macros (assume_solvency, assert_solvency)
+   - Implements 4 CVLR rules verifying that deposit, withdraw, and reward preserve solvency
+   - Includes an expected-to-fail rule for slash showing it can break solvency
+
+4. **Configuration** (Cargo.toml): Properly configured with all dependencies and required Certora metadata section.
+
+The code compiles successfully with all features and passes the CVLR runtime tests. The implementation focuses on simplicity and verifiability, avoiding unnecessary complexity while maintaining the core safety property of solvency."

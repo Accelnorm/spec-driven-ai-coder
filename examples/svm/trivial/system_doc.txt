@@ -1,9 +1,0 @@
-Simple Addition Library
-
-This is a minimal Solana program library that provides basic arithmetic operations.
-
-The library should implement an `add` function that correctly computes the sum of two u64 values.
-
-The specification verifies that the addition is computed correctly for all possible inputs.
-
-The default Rust behavior for overflow is fine, and there are no Solana-specific requirements to consider here: just have a quick implementation.
