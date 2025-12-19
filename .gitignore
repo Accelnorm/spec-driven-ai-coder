@@ -8,3 +8,4 @@ scripts/*.html
 .venv/
 .ragvenv/
 .windsurf/
+examples/svm_experimental/
