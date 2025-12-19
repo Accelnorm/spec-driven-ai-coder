@@ -2,6 +2,7 @@
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import ToolMessage, HumanMessage
+from langchain_anthropic import ChatAnthropic
 
 from pydantic import BaseModel, Field
 
@@ -19,7 +20,19 @@ class ResumeCommentary(BaseModel):
     interface_path: str = Field(description="The path of the interface file on the VFS")
 
 def create_resume_commentary(state: AIComposerState, llm: BaseChatModel) -> ResumeCommentary:
-    bound = llm.with_structured_output(ResumeCommentary)
+    structured_llm: BaseChatModel = llm
+    if isinstance(llm, ChatAnthropic):
+        thinking = getattr(llm, "thinking", None)
+        if isinstance(thinking, dict) and thinking.get("type") == "enabled":
+            try:
+                structured_llm = llm.model_copy(update={"thinking": {"type": "disabled"}})
+            except Exception:
+                try:
+                    structured_llm = llm.copy(update={"thinking": {"type": "disabled"}})
+                except Exception:
+                    structured_llm = llm
+
+    bound = structured_llm.with_structured_output(ResumeCommentary)
     messages = state["messages"].copy()
 
     last = messages[-1]
