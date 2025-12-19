@@ -11,6 +11,7 @@ from langchain_core.runnables import RunnableConfig
 from langchain_core.messages import HumanMessage
 from langchain_core.language_models.chat_models import BaseChatModel
 from langgraph.types import Command
+from langgraph.errors import GraphRecursionError
 
 from graphcore.tools.memory import memory_tool
 
@@ -390,59 +391,72 @@ def execute_ai_composer_workflow(
         interrupted = False
         r = current_input
         current_input = None
-        for (event_ty_raw, payload) in workflow_exec.stream(input=r, config=config, context=work_context, stream_mode=["custom", "updates", "checkpoints"]):
-            event_ty = cast(StreamEvents, event_ty_raw)
-            assert isinstance(payload, dict)
-            match event_ty:
-                case "checkpoints":
-                    print("current checkpoint: " + payload["config"]["configurable"]["checkpoint_id"])
-                    logger.info("current checkpoint: " + payload["config"]["configurable"]["checkpoint_id"])
-                case "updates":
-                    if handler.requested and "tools" in payload:
-                        st = workflow_exec.get_state(curr_state_config).values
-                        res = A.debug_console(
-                            work_context,
-                            st, #type: ignore
-                            True
-                        )
-                        handler.reset()
-                        if res is not None:
-                            state_res = workflow_exec.update_state(curr_state_config, {
-                                "messages": [
-                                    HumanMessage(content=res)
-                                ]
-                            }, as_node="tools")
+        try:
+            for (event_ty_raw, payload) in workflow_exec.stream(input=r, config=config, context=work_context, stream_mode=["custom", "updates", "checkpoints"]):
+                event_ty = cast(StreamEvents, event_ty_raw)
+                assert isinstance(payload, dict)
+                match event_ty:
+                    case "checkpoints":
+                        print("current checkpoint: " + payload["config"]["configurable"]["checkpoint_id"])
+                        logger.info("current checkpoint: " + payload["config"]["configurable"]["checkpoint_id"])
+                    case "updates":
+                        if handler.requested and "tools" in payload:
+                            st = workflow_exec.get_state(curr_state_config).values
+                            res = A.debug_console(
+                                work_context,
+                                st, #type: ignore
+                                True
+                            )
+                            handler.reset()
+                            if res is not None:
+                                state_res = workflow_exec.update_state(curr_state_config, {
+                                    "messages": [
+                                        HumanMessage(content=res)
+                                    ]
+                                }, as_node="tools")
+                                interrupted = True
+                                config["configurable"]["checkpoint_id"] = state_res.get("configurable", {})["checkpoint_id"]
+                                break
+                        if "__interrupt__" in payload:
+                            if "configurable" in config and "checkpoint_id" in config["configurable"]:
+                                del config["configurable"]["checkpoint_id"]
+                            interrupt_data = cast(dict, payload["__interrupt__"][0].value)
+                            def debug_thunk():
+                                st = cast(AIComposerState, workflow_exec.get_state(curr_state_config).values)
+                                A.debug_console(work_context, st, False)
+                            human_response = handle_human_interrupt(interrupt_data, debug_thunk)
+                            current_input = Command(resume=human_response)
                             interrupted = True
-                            config["configurable"]["checkpoint_id"] = state_res.get("configurable", {})["checkpoint_id"]
                             break
-                    if "__interrupt__" in payload:
-                        if "configurable" in config and "checkpoint_id" in config["configurable"]:
-                            del config["configurable"]["checkpoint_id"]
-                        interrupt_data = cast(dict, payload["__interrupt__"][0].value)
-                        def debug_thunk():
-                            st = cast(AIComposerState, workflow_exec.get_state(curr_state_config).values)
-                            A.debug_console(work_context, st, False)
-                        human_response = handle_human_interrupt(interrupt_data, debug_thunk)
-                        current_input = Command(resume=human_response)
-                        interrupted = True
-                        break
 
-                    summarize_update(payload)
-                case "custom":
-                    p = cast(PartialUpdates, payload)
-                    full_update: AllUpdates
-                    if p["type"] == "summarization_raw":
-                        curr_checkpoint = workflow_exec.get_state(curr_state_config).config.get("configurable", {}).get("checkpoint_id", None)
-                        if curr_checkpoint is None:
-                            raise RuntimeError("Have summarization before ever hitting a checkpoint; this is sus")
-                        full_update = Summarization(
-                            type="summarization",
-                            checkpoint_id=curr_checkpoint,
-                            summary=p["summary"]
-                        )
-                    else:
-                        full_update = p
-                    handle_custom_update(full_update, thread_id, audit_db)
+                        summarize_update(payload)
+                    case "custom":
+                        p = cast(PartialUpdates, payload)
+                        full_update: AllUpdates
+                        if p["type"] == "summarization_raw":
+                            curr_checkpoint = workflow_exec.get_state(curr_state_config).config.get("configurable", {}).get("checkpoint_id", None)
+                            if curr_checkpoint is None:
+                                raise RuntimeError("Have summarization before ever hitting a checkpoint; this is sus")
+                            full_update = Summarization(
+                                type="summarization",
+                                checkpoint_id=curr_checkpoint,
+                                summary=p["summary"]
+                            )
+                        else:
+                            full_update = p
+                        handle_custom_update(full_update, thread_id, audit_db)
+        except GraphRecursionError:
+            state = workflow_exec.get_state(curr_state_config)
+            checkpoint_id = state.config.get("configurable", {}).get("checkpoint_id", None)
+            print(f"ERROR: Workflow recursion limit ({workflow_options.recursion_limit}) reached without completion.")
+            if checkpoint_id is not None:
+                print(f"Last checkpoint: {checkpoint_id}")
+                print(
+                    "To continue, rerun with a higher --recursion-limit, or resume from this checkpoint using "
+                    "--thread-id and --checkpoint-id."
+                )
+            logger.exception("Workflow recursion limit reached")
+            return 1
 
         if interrupted:
             continue
