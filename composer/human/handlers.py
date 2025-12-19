@@ -79,8 +79,9 @@ def handle_question_interrupt(interrupt_data: QuestionType, debug_thunk: Callabl
     _print_header("HUMAN ASSISTANCE REQUESTED")
     print(f"Question: {interrupt_data['question']}")
     print(f"Context: {interrupt_data['context']}")
-    if interrupt_data["code"]:
-        print(f"Code:\n{interrupt_data['code']}")
+    code = interrupt_data.get("code")
+    if code:
+        print(f"Code:\n{code}")
     return prompt_input("Enter your answer (begin response with FOLLOWUP to request clarification)", debug_thunk)
 
 def handle_req_relaxation_interrupt(interrupt: RequirementRelaxationType, debug_thunk: Callable[[], None]) -> str:
