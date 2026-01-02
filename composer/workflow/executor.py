@@ -332,7 +332,7 @@ def execute_ai_composer_workflow(
         system_doc=system_doc,
         interface_file=interface_file,
         spec_file=spec_file,
-        vfs_init=materializer.iterate(flow_input),
+        vfs_init=materializer.iterate(cast(AIComposerState, flow_input)),
         reqs=reqs_list
     )
 

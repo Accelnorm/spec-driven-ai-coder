@@ -82,7 +82,7 @@ def get_vfs_tools(
     immutable: bool,
     target: TargetPlatform = "evm",
     spec_filename: str | None = None
-) -> tuple[list[BaseTool], VFSAccessor[VFSState]]:
+) -> tuple[list[BaseTool], VFSAccessor[VFSState]] | tuple[list[BaseTool], VFSAccessor[AIComposerState]]:
     if immutable:
         return vfs_tools(VFSToolConfig(
             fs_layer=fs_layer,
@@ -120,12 +120,15 @@ def get_vfs_tools(
     add new specification files.
     """
 
-        (vfs_tooling, mat) = vfs_tools(VFSToolConfig(
-            fs_layer=fs_layer,
-            immutable=False,
-            forbidden_write=forbidden_write,
-            put_doc_extra=put_doc_extra
-        ), AIComposerState)
+        config: VFSToolConfig = {
+            "fs_layer": fs_layer,
+            "immutable": False,
+            "put_doc_extra": put_doc_extra
+        }
+        if forbidden_write is not None:
+            config["forbidden_write"] = forbidden_write
+
+        (vfs_tooling, mat) = vfs_tools(config, AIComposerState)
 
         forbidden_re = re.compile(forbidden_write) if forbidden_write is not None else None
 
@@ -166,7 +169,7 @@ def get_cryptostate_builder(
     extra_tools: list[BaseTool] = [],
     target: TargetPlatform = "evm",
     spec_filename: str | None = None
-) -> tuple[StateGraph[AIComposerState, AIComposerContext, Input, Any], BoundLLM, VFSAccessor[VFSState]]:
+) -> tuple[StateGraph[AIComposerState, AIComposerContext, Input, Any], BoundLLM, VFSAccessor[AIComposerState]]:
     (vfs_tooling, mat) = get_vfs_tools(fs_layer=fs_layer, immutable=False, target=target, spec_filename=spec_filename)
     # import here to avoid loading these for non-composer factory uses
 
