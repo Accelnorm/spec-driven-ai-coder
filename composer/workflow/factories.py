@@ -9,6 +9,8 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.tools import BaseTool
 from langchain_core.tools import tool, InjectedToolCallId
 from langchain_anthropic import ChatAnthropic
+from langchain_ollama import ChatOllama
+from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph
 from langgraph.store.postgres import PostgresStore
 from pydantic import BaseModel, Field
@@ -60,7 +62,59 @@ def get_initial_prompt(target: TargetPlatform, prompt: PromptParams) -> str:
 
 
 def create_llm(args: ModelOptions) -> BaseChatModel:
-    """Create and configure the LLM."""
+    """Create and configure the LLM based on the selected provider."""
+    match args.provider:
+        case "anthropic":
+            return create_anthropic_llm(args)
+        case "ollama":
+            return create_local_llm(args)
+        case "chutes" | "zai":
+            return create_openai_llm(args)
+        case _:
+            raise ValueError(f"Unknown provider: {args.provider}")
+
+
+def create_local_llm(args: ModelOptions) -> BaseChatModel:
+    """Create a local LLM via Ollama."""
+    model = args.local_model or args.model
+    assert model is not None
+
+    kwargs = {
+        "model": model,
+        "temperature": 0.7,
+        "num_predict": args.tokens,
+    }
+
+    base_url = args.ollama_base_url or args.api_base_url
+    if base_url:
+        kwargs["base_url"] = base_url
+
+    return ChatOllama(**kwargs)
+
+
+_OPENAI_API_KEY_ENV = {
+    "chutes": "CHUTES_API_KEY",
+    "zai": "ZAI_API_KEY",
+}
+
+def create_openai_llm(args: ModelOptions) -> BaseChatModel:
+    """Create an LLM via an OpenAI-compatible API (chutes.ai, Z.AI, etc.)."""
+    import os
+    env_var = _OPENAI_API_KEY_ENV.get(args.provider, "OPENAI_API_KEY")
+    api_key = os.environ.get(env_var)
+    if not api_key:
+        raise ValueError(f"Missing API key: set the {env_var} environment variable for provider '{args.provider}'")
+    return ChatOpenAI(
+        model=args.model,
+        max_tokens=args.tokens,
+        temperature=0.7,
+        api_key=api_key,
+        base_url=args.api_base_url,
+    )
+
+
+def create_anthropic_llm(args: ModelOptions) -> BaseChatModel:
+    """Create a Claude LLM via Anthropic API."""
     return ChatAnthropic(
         model_name=args.model,
         max_tokens_to_sample=args.tokens,

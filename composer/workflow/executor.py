@@ -310,7 +310,7 @@ def execute_ai_composer_workflow(
         extra_tools.append(judge_tool)
         extra_tools.append(requirements_relaxation)
 
-    if "context-management-2025-06-27" in getattr(llm, "betas"):
+    if "context-management-2025-06-27" in getattr(llm, "betas", []):
         memory = memory_tool(get_memory(thread_id, "composer"))
         extra_tools.append(memory)
 

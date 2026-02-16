@@ -50,6 +50,36 @@ class UploadedFile:
         with open(self.path, 'rb') as f:
             return f.read()
 
+
+@dataclass
+class LocalFile:
+    """
+    Represents a local file for use with local LLMs (no upload needed).
+    File contents are passed inline as text.
+    """
+    basename: str
+    path: str
+
+    def to_document_dict(self) -> dict:
+        """Convert to inline text format for local LLMs"""
+        return {
+            "type": "text",
+            "text": f"--- File: {self.basename} ---\n{self.read()}\n--- End of {self.basename} ---"
+        }
+
+    def read(self) -> str:
+        with open(self.path, 'r') as f:
+            return f.read()
+        
+    @property
+    def string_contents(self) -> str:
+        return self.read()
+
+    @property
+    def bytes_contents(self) -> bytes:
+        with open(self.path, 'rb') as f:
+            return f.read()
+
 class InMemoryFile:
     def __init__(self, name: str, contents: str | bytes):
         self.basname = name
@@ -103,6 +133,14 @@ class ModelOptions(Protocol):
     tokens: int
     thinking_tokens: int
     memory_tool: bool
+
+    # Provider selection
+    provider: str                  # "anthropic" | "chutes" | "zai" | "ollama"
+    api_base_url: Optional[str]    # override for provider's default base URL
+
+    # Local LLM options
+    local_model: Optional[str]
+    ollama_base_url: Optional[str]
 
 class CommandLineArgs(WorkflowOptions, ModelOptions):
     spec_file: str

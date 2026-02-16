@@ -11,6 +11,9 @@ def main() -> int:
     parser = fresh_workflow_argument_parser()
     args = parser.parse_args()
 
+    from composer.input.parsing import resolve_provider_args
+    resolve_provider_args(args)
+
     setup_logging(args.debug)
 
     llm = create_llm(args)

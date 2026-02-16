@@ -15,8 +15,12 @@ def _final_resume_option(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("updated_system", help="The new system document, if any. If not provided, the original system doc is used", nargs='?')
 
 def _common_options(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--model", default=os.environ.get("AICOMPOSER_MODEL", "claude-sonnet-4-20250514"),
-                        help="Model to use for code generation (default: claude-sonnet-4-20250514)")
+    parser.add_argument("--model", default=None,
+                        help="Model to use for code generation (default depends on provider)")
+    parser.add_argument("--provider", choices=["anthropic", "chutes", "zai", "ollama"], default="anthropic",
+                        help="LLM provider to use (default: anthropic)")
+    parser.add_argument("--api-base-url", default=None,
+                        help="Override the base URL for the LLM provider API")
     parser.add_argument("--tokens", type=int, default=10_000,
                         help="Token budget for code generation (default: 10,000)")
     parser.add_argument("--thinking-tokens", type=int, default=2048,
@@ -60,6 +64,12 @@ def _common_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--no-fv", action="store_true",
                         help="Disable formal verification enforcement. By default, the agent must satisfy the prover requirement before marking the result complete.")
 
+    # Local LLM options
+    parser.add_argument("--local-model", default=None,
+                        help="Use a local model via Ollama instead of Anthropic API. Specify the model name (e.g., 'llama3.1:70b', 'qwen2.5-coder:32b')")
+    parser.add_argument("--ollama-base-url", default=None,
+                        help="Base URL for Ollama API (default: http://localhost:11434)")
+
 
 def fresh_workflow_argument_parser() -> TypedArgumentParser[CommandLineArgs]:
     """Configure command line argument parser."""
@@ -96,3 +106,40 @@ def resume_workflow_parser() -> TypedArgumentParser[ResumeArgs]:
     _final_resume_option(resume_fs_args)
 
     return cast(TypedArgumentParser[ResumeArgs], parser)
+
+
+_PROVIDER_DEFAULTS = {
+    "anthropic": {
+        "model": lambda: os.environ.get("AICOMPOSER_MODEL", "claude-sonnet-4-20250514"),
+    },
+    "chutes": {
+        "model": lambda: "Qwen/Qwen3-Coder-Next",
+        "api_base_url": "https://llm.chutes.ai/v1",
+    },
+    "zai": {
+        "model": lambda: "glm-5",
+        "api_base_url": "https://api.z.ai/api/paas/v4/",
+    },
+}
+
+def resolve_provider_args(args: argparse.Namespace) -> None:
+    """Resolve provider-specific defaults after argument parsing."""
+    # Backward compat: --local-model implies --provider ollama
+    if args.local_model and args.provider == "anthropic":
+        args.provider = "ollama"
+
+    # Fill in default model if not explicitly set
+    if args.model is None:
+        defaults = _PROVIDER_DEFAULTS.get(args.provider, {})
+        model_fn = defaults.get("model")
+        if model_fn is not None:
+            args.model = model_fn()
+        elif args.provider == "ollama" and args.local_model:
+            args.model = args.local_model
+        else:
+            args.model = "claude-sonnet-4-20250514"
+
+    # Fill in default api_base_url if not explicitly set
+    if args.api_base_url is None:
+        defaults = _PROVIDER_DEFAULTS.get(args.provider, {})
+        args.api_base_url = defaults.get("api_base_url")

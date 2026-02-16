@@ -14,6 +14,9 @@ def main() -> int:
     parser = resume_workflow_parser()
     args = parser.parse_args()
 
+    from composer.input.parsing import resolve_provider_args
+    resolve_provider_args(args)
+
     input_data: ResumeIdData | ResumeFSData
 
     match args.command:
