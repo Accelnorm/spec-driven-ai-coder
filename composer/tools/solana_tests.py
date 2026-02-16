@@ -1,5 +1,6 @@
 from typing import Annotated, Optional, List
-from pydantic import Field
+from pydantic import Field, field_validator
+import json
 import subprocess
 from pathlib import Path
 
@@ -133,6 +134,20 @@ class SolanaQuickTestsArgs(WithToolCallId):
         default=None,
         description="Optional list of Cargo features to test with. Common features for CVLR projects: 'rt' (CVLR runtime feature for running rules as tests), 'certora' (feature flag for Certora-specific code). If not specified, only basic cargo check and cargo test are run."
     )
+
+    @field_validator("features", mode="before")
+    @classmethod
+    def parse_features_string(cls, v):
+        """Handle LLMs passing features as a JSON string instead of a list."""
+        if isinstance(v, str):
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return parsed
+            except (json.JSONDecodeError, TypeError):
+                pass
+            return [v]
+        return v
     
     run_tests: bool = Field(
         default=True,
