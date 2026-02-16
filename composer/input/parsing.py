@@ -113,7 +113,7 @@ _PROVIDER_DEFAULTS = {
         "model": lambda: os.environ.get("AICOMPOSER_MODEL", "claude-sonnet-4-20250514"),
     },
     "chutes": {
-        "model": lambda: "Qwen/Qwen3-Coder-Next",
+        "model": lambda: "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
         "api_base_url": "https://llm.chutes.ai/v1",
     },
     "zai": {
